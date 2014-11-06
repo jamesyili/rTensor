@@ -1,4 +1,4 @@
 rTensor
 =======
 
-rTensor v1.1: See NEWS for changelog
+rTensor v1.2: See NEWS for changelog

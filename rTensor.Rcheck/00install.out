@@ -1,0 +1,12 @@
+* installing *source* package ‘rTensor’ ...
+** R
+** preparing package for lazy loading
+Creating a generic function for ‘print’ from package ‘base’ in package ‘rTensor’
+Creating a generic function for ‘head’ from package ‘utils’ in package ‘rTensor’
+Creating a generic function for ‘tail’ from package ‘utils’ in package ‘rTensor’
+Creating a generic function for ‘t’ from package ‘base’ in package ‘rTensor’
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded
+* DONE (rTensor)

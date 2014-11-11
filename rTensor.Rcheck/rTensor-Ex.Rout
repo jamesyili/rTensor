@@ -1,0 +1,1096 @@
+
+R version 3.1.1 (2014-07-10) -- "Sock it to Me"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin10.8.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "rTensor"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> library('rTensor')
+> 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("Ops-methods")
+> ### * Ops-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: Ops-methods
+> ### Title: Conformable elementwise operators for Tensor
+> ### Aliases: Ops,Tensor,Tensor-method Ops,Tensor,array-method
+> ###   Ops,Tensor,numeric-method Ops,array,Tensor-method
+> ###   Ops,numeric,Tensor-method Ops-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor(c(3,4,5))
+> tnsr2 <- rand_tensor(c(3,4,5))
+> tnsrsum <- tnsr + tnsr2
+> tnsrdiff <- tnsr - tnsr2
+> tnsrelemprod <- tnsr * tnsr2
+> tnsrelemquot <- tnsr / tnsr2
+> for (i in 1:3L){
++ 	for (j in 1:4L){
++ 		for (k in 1:5L){
++ 			stopifnot(tnsrsum@data[i,j,k]==tnsr@data[i,j,k]+tnsr2@data[i,j,k])
++ 			stopifnot(tnsrdiff@data[i,j,k]==(tnsr@data[i,j,k]-tnsr2@data[i,j,k]))
++ 			stopifnot(tnsrelemprod@data[i,j,k]==tnsr@data[i,j,k]*tnsr2@data[i,j,k])
++ 			stopifnot(tnsrelemquot@data[i,j,k]==tnsr@data[i,j,k]/tnsr2@data[i,j,k])
++ }
++ }
++ }
+> 
+> 
+> 
+> cleanEx()
+> nameEx("Tensor-class")
+> ### * Tensor-class
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: Tensor-class
+> ### Title: S4 Class for a Tensor
+> ### Aliases: Tensor Tensor-class
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> class(tnsr)
+[1] "Tensor"
+attr(,"package")
+[1] "rTensor"
+> tnsr
+Numeric Tensor of 3 Modes
+Modes:  3 4 5 
+Data: 
+[1] -0.6264538  0.1836433 -0.8356286  1.5952808  0.3295078 -0.8204684
+> print(tnsr)
+Numeric Tensor of 3 Modes
+Modes:  3 4 5 
+Data: 
+[1] -0.6264538  0.1836433 -0.8356286  1.5952808  0.3295078 -0.8204684
+> dim(tnsr)
+[1] 3 4 5
+> tnsr@num_modes
+[1] 3
+> tnsr@data
+, , 1
+
+           [,1]       [,2]      [,3]       [,4]
+[1,] -0.6264538  1.5952808 0.4874291 -0.3053884
+[2,]  0.1836433  0.3295078 0.7383247  1.5117812
+[3,] -0.8356286 -0.8204684 0.5757814  0.3898432
+
+, , 2
+
+           [,1]        [,2]      [,3]        [,4]
+[1,] -0.6212406 -0.04493361 0.8212212  0.78213630
+[2,] -2.2146999 -0.01619026 0.5939013  0.07456498
+[3,]  1.1249309  0.94383621 0.9189774 -1.98935170
+
+, , 3
+
+            [,1]       [,2]       [,3]        [,4]
+[1,]  0.61982575 -1.4707524  1.3586796 -0.05380504
+[2,] -0.05612874 -0.4781501 -0.1027877 -1.37705956
+[3,] -0.15579551  0.4179416  0.3876716 -0.41499456
+
+, , 4
+
+           [,1]       [,2]       [,3]       [,4]
+[1,] -0.3942900  0.7631757  0.6969634 -0.7074952
+[2,] -0.0593134 -0.1645236  0.5566632  0.3645820
+[3,]  1.1000254 -0.2533617 -0.6887557  0.7685329
+
+, , 5
+
+           [,1]       [,2]       [,3]       [,4]
+[1,] -0.1123462 -0.6120264  1.4330237 -1.0441346
+[2,]  0.8811077  0.3411197  1.9803999  0.5697196
+[3,]  0.3981059 -1.1293631 -0.3672215 -0.1350546
+
+> 
+> 
+> 
+> cleanEx()
+> nameEx("as.tensor")
+> ### * as.tensor
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: as.tensor
+> ### Title: Tensor Conversion
+> ### Aliases: as.tensor
+> 
+> ### ** Examples
+> 
+> #From vector
+> vec <- runif(100); vecT <- as.tensor(vec); vecT
+Numeric Tensor of 1 Modes
+Modes:  100 
+Data: 
+[1] 0.2655087 0.3721239 0.5728534 0.9082078 0.2016819 0.8983897
+> #From matrix
+> mat <- matrix(runif(1000),nrow=100,ncol=10)
+> matT <- as.tensor(mat); matT
+Numeric Tensor of 2 Modes
+Modes:  100 10 
+Data: 
+          [,1]      [,2]       [,3]      [,4]      [,5]      [,6]       [,7]
+[1,] 0.6547239 0.2675082 0.67371223 0.6588776 0.5541771 0.8142518 0.92974321
+[2,] 0.3531973 0.2186453 0.09485786 0.1850700 0.6882752 0.9287772 0.90093927
+[3,] 0.2702601 0.5167968 0.49259612 0.9543781 0.6580576 0.1474810 0.75088219
+[4,] 0.9926841 0.2689506 0.46155184 0.8978485 0.6633427 0.7498217 0.67656877
+[5,] 0.6334933 0.1811683 0.37521653 0.9436971 0.4722342 0.9756573 0.64801345
+[6,] 0.2132081 0.5185761 0.99109922 0.7236908 0.9695282 0.9747925 0.07324687
+           [,8]       [,9]      [,10]
+[1,] 0.85868745 0.83189899 0.53080879
+[2,] 0.03443876 0.76684275 0.68486090
+[3,] 0.97099715 0.27278032 0.38328339
+[4,] 0.74511014 0.18816330 0.95498800
+[5,] 0.27325524 0.22576183 0.11835658
+[6,] 0.67710610 0.06197037 0.03910006
+> #From array
+> indices <- c(10,20,30,40)
+> arr <- array(runif(prod(indices)), dim = indices)
+> arrT <- as.tensor(arr); arrT
+Numeric Tensor of 4 Modes
+Modes:  10 20 30 40 
+Data: 
+[1] 0.6903917 0.2537671 0.4110384 0.1228911 0.1319666 0.6401180
+> 
+> 
+> 
+> cleanEx()
+> nameEx("cp")
+> ### * cp
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: cp
+> ### Title: Canonical Polyadic Decomposition
+> ### Aliases: cp
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor(c(6,7,8))
+> cpD <- cp(tnsr,num_components=5)
+  |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |========================================================              |  80%  |                                                                              |===========================================================           |  84%  |                                                                              |==============================================================        |  88%  |                                                                              |================================================================      |  92%  |                                                                              |===================================================================   |  96%  |                                                                              |======================================================================| 100%
+> cpD$conv
+[1] FALSE
+> cpD$norm_percent
+[1] 28.50008
+> plot(cpD$all_resids)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("dim-methods")
+> ### * dim-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: dim-methods
+> ### Title: Mode Getter for Tensor
+> ### Aliases: dim,Tensor-method dim-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> dim(tnsr)
+[1] 3 4 5
+> 
+> 
+> 
+> cleanEx()
+> nameEx("extract-methods")
+> ### * extract-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: [-methods
+> ### Title: Extract or Replace Subtensors
+> ### Aliases: [,Tensor-method [-methods [<-,Tensor-method
+> ###   extract,Tensor-method
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> tnsr[1,2,3]
+Numeric Tensor of 1 Modes
+Modes:  1 
+Data: 
+[1] -1.470752
+> tnsr[3,1,]
+Numeric Tensor of 1 Modes
+Modes:  5 
+Data: 
+[1] -0.8356286  1.1249309 -0.1557955  1.1000254  0.3981059
+> tnsr[,,5]
+Numeric Tensor of 2 Modes
+Modes:  3 4 
+Data: 
+           [,1]       [,2]       [,3]       [,4]
+[1,] -0.1123462 -0.6120264  1.4330237 -1.0441346
+[2,]  0.8811077  0.3411197  1.9803999  0.5697196
+[3,]  0.3981059 -1.1293631 -0.3672215 -0.1350546
+> tnsr[,,5,drop=FALSE]
+Numeric Tensor of 3 Modes
+Modes:  3 4 1 
+Data: 
+[1] -0.1123462  0.8811077  0.3981059 -0.6120264  0.3411197 -1.1293631
+> 
+> tnsr[1,2,3] <- 3; tnsr[1,2,3]
+Numeric Tensor of 1 Modes
+Modes:  1 
+Data: 
+[1] 3
+> tnsr[3,1,] <- rep(0,5); tnsr[3,1,]
+Numeric Tensor of 1 Modes
+Modes:  5 
+Data: 
+[1] 0 0 0 0 0
+> tnsr[,2,] <- matrix(0,nrow=3,ncol=5); tnsr[,2,]
+Numeric Tensor of 2 Modes
+Modes:  3 5 
+Data: 
+     [,1] [,2] [,3] [,4] [,5]
+[1,]    0    0    0    0    0
+[2,]    0    0    0    0    0
+[3,]    0    0    0    0    0
+> 
+> 
+> 
+> cleanEx()
+> nameEx("fnorm-methods")
+> ### * fnorm-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: fnorm-methods
+> ### Title: Tensor Frobenius Norm
+> ### Aliases: fnorm fnorm,Tensor-method fnorm-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> fnorm(tnsr)
+[1] 6.621358
+> 
+> 
+> 
+> cleanEx()
+> nameEx("fold")
+> ### * fold
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: fold
+> ### Title: General Folding of Matrix
+> ### Aliases: fold
+> 
+> ### ** Examples
+> 
+> tnsr <- new("Tensor",3L,c(3L,4L,5L),data=runif(60))
+> matT3<-unfold(tnsr,row_idx=2,col_idx=c(3,1))
+> identical(fold(matT3,row_idx=2,col_idx=c(3,1),modes=c(3,4,5)),tnsr)
+[1] TRUE
+> 
+> 
+> 
+> cleanEx()
+> nameEx("hamadard_list")
+> ### * hamadard_list
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: hamadard_list
+> ### Title: List Hamadard Product
+> ### Aliases: hamadard_list
+> 
+> ### ** Examples
+> 
+> lizt <- list('mat1' = matrix(runif(40),ncol=4),
++ 'mat2' = matrix(runif(40),ncol=4),
++ 'mat3' = matrix(runif(40),ncol=4))
+> dim(hamadard_list(lizt))
+[1] 10  4
+> 
+> 
+> 
+> cleanEx()
+> nameEx("head-methods")
+> ### * head-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: head-methods
+> ### Title: Head for Tensor
+> ### Aliases: head,Tensor-method head-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> head(tnsr)
+[1] -0.6264538  0.1836433 -0.8356286  1.5952808  0.3295078 -0.8204684
+> 
+> 
+> 
+> cleanEx()
+> nameEx("hosvd")
+> ### * hosvd
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: hosvd
+> ### Title: (Truncated-)Higher-order SVD
+> ### Aliases: hosvd
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor(c(6,7,8))
+> hosvdD <-hosvd(tnsr)
+  |                                                                              |                                                                      |   0%  |                                                                              |=======================                                               |  33%  |                                                                              |===============================================                       |  67%  |                                                                              |======================================================================| 100%
+> hosvdD$fnorm_resid
+[1] 2.723404e-14
+> hosvdD2 <-hosvd(tnsr,ranks=c(3,3,4))
+  |                                                                              |                                                                      |   0%  |                                                                              |=======================                                               |  33%  |                                                                              |===============================================                       |  67%  |                                                                              |======================================================================| 100%
+> hosvdD2$fnorm_resid
+[1] 14.34067
+> 
+> 
+> 
+> cleanEx()
+> nameEx("innerProd-methods")
+> ### * innerProd-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: innerProd-methods
+> ### Title: Tensors Inner Product
+> ### Aliases: innerProd innerProd,Tensor,Tensor-method innerProd-methods
+> 
+> ### ** Examples
+> 
+> tnsr1 <- rand_tensor()
+> tnsr2 <- rand_tensor()
+> innerProd(tnsr1,tnsr2)
+[1] -1.332629
+> 
+> 
+> 
+> cleanEx()
+> nameEx("k_fold")
+> ### * k_fold
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: k_fold
+> ### Title: k-mode Folding of Matrix
+> ### Aliases: k_fold
+> 
+> ### ** Examples
+> 
+> tnsr <- new("Tensor",3L,c(3L,4L,5L),data=runif(60))
+> matT2<-k_unfold(tnsr,m=2)
+> identical(k_fold(matT2,m=2,modes=c(3,4,5)),tnsr)
+[1] TRUE
+> 
+> 
+> 
+> cleanEx()
+> nameEx("k_unfold-methods")
+> ### * k_unfold-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: k_unfold-methods
+> ### Title: Tensor k-mode Unfolding
+> ### Aliases: k_unfold k_unfold,Tensor-method k_unfold-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> matT2<-rs_unfold(tnsr,m=2)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("khatri_rao")
+> ### * khatri_rao
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: khatri_rao
+> ### Title: Khatri-Rao Product
+> ### Aliases: khatri_rao
+> 
+> ### ** Examples
+> 
+> dim(khatri_rao(matrix(runif(12),ncol=4),matrix(runif(12),ncol=4)))
+[1] 9 4
+> 
+> 
+> 
+> cleanEx()
+> nameEx("khatri_rao_list")
+> ### * khatri_rao_list
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: khatri_rao_list
+> ### Title: List Khatri-Rao Product
+> ### Aliases: khatri_rao_list
+> 
+> ### ** Examples
+> 
+> smalllizt <- list('mat1' = matrix(runif(12),ncol=4),
++ 'mat2' = matrix(runif(12),ncol=4),
++ 'mat3' = matrix(runif(12),ncol=4))
+> dim(khatri_rao_list(smalllizt))
+[1] 27  4
+> 
+> 
+> 
+> cleanEx()
+> nameEx("kronecker_list")
+> ### * kronecker_list
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: kronecker_list
+> ### Title: List Kronecker Product
+> ### Aliases: kronecker_list
+> 
+> ### ** Examples
+> 
+> smalllizt <- list('mat1' = matrix(runif(12),ncol=4),
++ 'mat2' = matrix(runif(12),ncol=4),
++ 'mat3' = matrix(runif(12),ncol=4))
+> dim(kronecker_list(smalllizt))
+[1] 27 64
+> 
+> 
+> 
+> cleanEx()
+> nameEx("matvec-methods")
+> ### * matvec-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: matvec-methods
+> ### Title: Tensor Matvec Unfolding
+> ### Aliases: matvec matvec,Tensor-method matvec-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor(c(2,3,4))
+> matT1<- matvec(tnsr)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("modeMean-methods")
+> ### * modeMean-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: modeMean-methods
+> ### Title: Tensor Mean Across Single Mode
+> ### Aliases: modeMean modeMean,Tensor-method modeMean-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> modeMean(tnsr,1,drop=TRUE)
+Numeric Tensor of 2 Modes
+Modes:  4 5 
+Data: 
+           [,1]       [,2]       [,3]      [,4]       [,5]
+[1,] -0.4261464 -0.5703365  0.1359672 0.2154740  0.3889558
+[2,]  0.3681067  0.2942374 -0.5103203 0.1150968 -0.4667566
+[3,]  0.6005117  0.7780333  0.5478545 0.1882903  1.0154007
+[4,]  0.5320787 -0.3775501 -0.6152864 0.1418732 -0.2031565
+> 
+> 
+> 
+> cleanEx()
+> nameEx("modeSum-methods")
+> ### * modeSum-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: modeSum-methods
+> ### Title: Tensor Sum Across Single Mode
+> ### Aliases: modeSum modeSum,Tensor-method modeSum-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> modeSum(tnsr,3,drop=TRUE)
+Numeric Tensor of 2 Modes
+Modes:  3 4 
+Data: 
+          [,1]        [,2]      [,3]      [,4]
+[1,] -1.134505  0.23074416 4.7973169 -1.328687
+[2,] -1.265391  0.01176355 3.7665014  1.143588
+[3,]  1.631638 -0.84141539 0.8264532 -1.381025
+> 
+> 
+> 
+> cleanEx()
+> nameEx("mpca")
+> ### * mpca
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: mpca
+> ### Title: Multilinear Principal Components Analysis
+> ### Aliases: mpca
+> 
+> ### ** Examples
+> 
+> tnsr <-rand_tensor(c(100,10,10))
+> mpcaD <- mpca(tnsr,ranks=c(30,5))
+  |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |=================                                                     |  24%  |                                                                              |====================                                                  |  28%  |                                                                              |======================                                                |  32%  |                                                                              |=========================                                             |  36%  |                                                                              |============================                                          |  40%  |                                                                              |===============================                                       |  44%  |                                                                              |==================================                                    |  48%  |                                                                              |====================================                                  |  52%  |                                                                              |=======================================                               |  56%  |                                                                              |==========================================                            |  60%  |                                                                              |=============================================                         |  64%  |                                                                              |================================================                      |  68%  |                                                                              |==================================================                    |  72%  |                                                                              |=====================================================                 |  76%  |                                                                              |======================================================================| 100%
+> mpcaD$conv
+[1] TRUE
+> mpcaD$norm_percent
+[1] 26.9972
+> plot(mpcaD$all_resids)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("print-methods")
+> ### * print-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: print-methods
+> ### Title: Print for Tensor
+> ### Aliases: print,Tensor-method print-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> print(tnsr)
+Numeric Tensor of 3 Modes
+Modes:  3 4 5 
+Data: 
+[1] -0.6264538  0.1836433 -0.8356286  1.5952808  0.3295078 -0.8204684
+> 
+> 
+> 
+> cleanEx()
+> nameEx("pvd")
+> ### * pvd
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: pvd
+> ### Title: Population Value Decomposition
+> ### Aliases: pvd
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor(c(10,5,100))
+> pvdD<-pvd(tnsr,uranks=rep(8,100),wranks=rep(4,100),a=8,b=4)
+  |                                                                              |                                                                      |   0%  |                                                                              |=                                                                     |   1%  |                                                                              |=                                                                     |   2%  |                                                                              |==                                                                    |   3%  |                                                                              |===                                                                   |   4%  |                                                                              |===                                                                   |   5%  |                                                                              |====                                                                  |   6%  |                                                                              |=====                                                                 |   7%  |                                                                              |=====                                                                 |   8%  |                                                                              |======                                                                |   9%  |                                                                              |=======                                                               |  10%  |                                                                              |=======                                                               |  11%  |                                                                              |========                                                              |  12%  |                                                                              |=========                                                             |  13%  |                                                                              |==========                                                            |  14%  |                                                                              |==========                                                            |  15%  |                                                                              |===========                                                           |  16%  |                                                                              |============                                                          |  17%  |                                                                              |=============                                                         |  18%  |                                                                              |==============                                                        |  19%  |                                                                              |==============                                                        |  20%  |                                                                              |===============                                                       |  21%  |                                                                              |================                                                      |  22%  |                                                                              |================                                                      |  23%  |                                                                              |=================                                                     |  24%  |                                                                              |==================                                                    |  25%  |                                                                              |==================                                                    |  26%  |                                                                              |===================                                                   |  27%  |                                                                              |====================                                                  |  28%  |                                                                              |====================                                                  |  29%  |                                                                              |=====================                                                 |  30%  |                                                                              |======================                                                |  31%  |                                                                              |======================                                                |  32%  |                                                                              |=======================                                               |  33%  |                                                                              |========================                                              |  34%  |                                                                              |========================                                              |  35%  |                                                                              |=========================                                             |  36%  |                                                                              |==========================                                            |  37%  |                                                                              |===========================                                           |  38%  |                                                                              |===========================                                           |  39%  |                                                                              |============================                                          |  40%  |                                                                              |=============================                                         |  41%  |                                                                              |=============================                                         |  42%  |                                                                              |==============================                                        |  43%  |                                                                              |===============================                                       |  44%  |                                                                              |===============================                                       |  45%  |                                                                              |================================                                      |  46%  |                                                                              |=================================                                     |  47%  |                                                                              |=================================                                     |  48%  |                                                                              |==================================                                    |  49%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================                                  |  51%  |                                                                              |=====================================                                 |  52%  |                                                                              |=====================================                                 |  53%  |                                                                              |======================================                                |  54%  |                                                                              |=======================================                               |  55%  |                                                                              |=======================================                               |  56%  |                                                                              |========================================                              |  57%  |                                                                              |=========================================                             |  58%  |                                                                              |=========================================                             |  59%  |                                                                              |==========================================                            |  60%  |                                                                              |===========================================                           |  61%  |                                                                              |===========================================                           |  62%  |                                                                              |============================================                          |  63%  |                                                                              |=============================================                         |  64%  |                                                                              |==============================================                        |  65%  |                                                                              |==============================================                        |  66%  |                                                                              |===============================================                       |  67%  |                                                                              |================================================                      |  68%  |                                                                              |================================================                      |  69%  |                                                                              |=================================================                     |  70%  |                                                                              |==================================================                    |  71%  |                                                                              |==================================================                    |  72%  |                                                                              |===================================================                   |  73%  |                                                                              |====================================================                  |  74%  |                                                                              |====================================================                  |  75%  |                                                                              |=====================================================                 |  76%  |                                                                              |======================================================                |  77%  |                                                                              |======================================================                |  78%  |                                                                              |=======================================================               |  79%  |                                                                              |========================================================              |  80%  |                                                                              |========================================================              |  81%  |                                                                              |=========================================================             |  82%  |                                                                              |==========================================================            |  83%  |                                                                              |===========================================================           |  84%  |                                                                              |============================================================          |  85%  |                                                                              |============================================================          |  86%  |                                                                              |=============================================================         |  87%  |                                                                              |==============================================================        |  88%  |                                                                              |===============================================================       |  89%  |                                                                              |===============================================================       |  90%  |                                                                              |================================================================      |  91%  |                                                                              |=================================================================     |  92%  |                                                                              |=================================================================     |  93%  |                                                                              |==================================================================    |  94%  |                                                                              |===================================================================   |  95%  |                                                                              |===================================================================   |  96%  |                                                                              |====================================================================  |  97%  |                                                                              |===================================================================== |  98%  |                                                                              |===================================================================== |  99%  |                                                                              |======================================================================| 100%> 
+> 
+> 
+> cleanEx()
+> nameEx("rand_tensor")
+> ### * rand_tensor
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: rand_tensor
+> ### Title: Tensor with Random Entries
+> ### Aliases: rand_tensor
+> 
+> ### ** Examples
+> 
+> rand_tensor()
+Numeric Tensor of 3 Modes
+Modes:  3 4 5 
+Data: 
+[1] -0.6264538  0.1836433 -0.8356286  1.5952808  0.3295078 -0.8204684
+> rand_tensor(c(4,4,4))
+Numeric Tensor of 3 Modes
+Modes:  4 4 4 
+Data: 
+[1]  2.40161776 -0.03924000  0.68973936  0.02800216 -0.74327321  0.18879230
+> rand_tensor(c(10,2,1),TRUE)
+Numeric Tensor of 2 Modes
+Modes:  10 2 
+Data: 
+            [,1]        [,2]
+[1,] -0.10019074  0.30655786
+[2,]  0.71266631 -1.53644982
+[3,] -0.07356440 -0.30097613
+[4,] -0.03763417 -0.52827990
+[5,] -0.68166048 -0.65209478
+[6,] -0.32427027 -0.05689678
+> 
+> 
+> 
+> cleanEx()
+> nameEx("show-methods")
+> ### * show-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: show-methods
+> ### Title: Show for Tensor
+> ### Aliases: show,Tensor-method show-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> tnsr
+Numeric Tensor of 3 Modes
+Modes:  3 4 5 
+Data: 
+[1] -0.6264538  0.1836433 -0.8356286  1.5952808  0.3295078 -0.8204684
+> 
+> 
+> 
+> cleanEx()
+> nameEx("t-methods")
+> ### * t-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: t-methods
+> ### Title: Tensor Transpose
+> ### Aliases: t,Tensor-method t-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> identical(t(tnsr)@data[,,1],t(tnsr@data[,,1]))
+[1] TRUE
+> identical(t(tnsr)@data[,,2],t(tnsr@data[,,5]))
+[1] TRUE
+> identical(t(t(tnsr)),tnsr)
+[1] TRUE
+> 
+> 
+> 
+> cleanEx()
+> nameEx("t_mult")
+> ### * t_mult
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: t_mult
+> ### Title: Tensor Multiplication (T-MULT)
+> ### Aliases: t_mult
+> 
+> ### ** Examples
+> 
+> tnsr <- new("Tensor",3L,c(3L,4L,5L),data=runif(60))
+> tnsr2 <- new("Tensor",3L,c(4L,3L,5L),data=runif(60))
+> t_mult(tnsr, tnsr2)
+Numeric Tensor of 3 Modes
+Modes:  3 3 5 
+Data: 
+[1] 5.579558 5.978916 6.268823 4.060670 4.642938 4.380126
+> 
+> 
+> 
+> cleanEx()
+> nameEx("t_svd")
+> ### * t_svd
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: t_svd
+> ### Title: Tensor Singular Value Decomposition
+> ### Aliases: t_svd
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> tsvdD <- t_svd(tnsr)
+  |                                                                              |                                                                      |   0%  |                                                                              |==============                                                        |  20%  |                                                                              |============================                                          |  40%  |                                                                              |==========================================                            |  60%  |                                                                              |========================================================              |  80%  |                                                                              |======================================================================| 100%
+> 
+> 
+> 
+> cleanEx()
+> nameEx("t_svd_reconstruct")
+> ### * t_svd_reconstruct
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: t_svd_reconstruct
+> ### Title: Reconstruct Tensor From TSVD
+> ### Aliases: t_svd_reconstruct
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor(c(10,10,10))
+> tsvdD <- t_svd(tnsr)
+  |                                                                              |                                                                      |   0%  |                                                                              |=======                                                               |  10%  |                                                                              |==============                                                        |  20%  |                                                                              |=====================                                                 |  30%  |                                                                              |============================                                          |  40%  |                                                                              |===================================                                   |  50%  |                                                                              |==========================================                            |  60%  |                                                                              |=================================================                     |  70%  |                                                                              |========================================================              |  80%  |                                                                              |===============================================================       |  90%  |                                                                              |======================================================================| 100%
+> 1 - fnorm(t_svd_reconstruct(tsvdD)-tnsr)/fnorm(tnsr)
+[1] 1
+> 
+> 
+> 
+> cleanEx()
+> nameEx("tail-methods")
+> ### * tail-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: tail-methods
+> ### Title: Tail for Tensor
+> ### Aliases: tail,Tensor-method tail-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> tail(tnsr)
+[1]  1.4330237  1.9803999 -0.3672215 -1.0441346  0.5697196 -0.1350546
+> 
+> 
+> 
+> cleanEx()
+> nameEx("tperm-methods")
+> ### * tperm-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: tperm-methods
+> ### Title: Mode Permutation for Tensor
+> ### Aliases: tperm tperm,Tensor-method tperm-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor(c(3,4,5))
+> dim(tperm(tnsr,perm=c(2,1,3)))
+[1] 5 4 3
+> dim(tperm(tnsr,perm=c(1,3,2)))
+[1] 5 4 3
+> 
+> 
+> 
+> cleanEx()
+> nameEx("ttl")
+> ### * ttl
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: ttl
+> ### Title: Tensor Times List
+> ### Aliases: ttl
+> 
+> ### ** Examples
+> 
+> tnsr <- new("Tensor",3L,c(3L,4L,5L),data=runif(60))
+> lizt <- list('mat1' = matrix(runif(30),ncol=3),
++ 'mat2' = matrix(runif(40),ncol=4),
++ 'mat3' = matrix(runif(50),ncol=5))
+> ttl(tnsr,lizt,ms=c(1,2,3))
+Numeric Tensor of 3 Modes
+Modes:  10 10 10 
+Data: 
+[1] 6.585309 7.594789 4.808532 3.983687 7.524395 5.618920
+> 
+> 
+> 
+> cleanEx()
+> nameEx("ttm")
+> ### * ttm
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: ttm
+> ### Title: Tensor Times Matrix (m-Mode Product)
+> ### Aliases: ttm
+> 
+> ### ** Examples
+> 
+> tnsr <- new("Tensor",3L,c(3L,4L,5L),data=runif(60))
+> mat <- matrix(runif(50),ncol=5)
+> ttm(tnsr,mat,m=3)
+Numeric Tensor of 3 Modes
+Modes:  3 4 10 
+Data: 
+[1] 1.261264 1.117185 1.275928 1.826454 1.289011 1.619712
+> 
+> 
+> 
+> cleanEx()
+> nameEx("tucker")
+> ### * tucker
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: tucker
+> ### Title: Tucker Decomposition
+> ### Aliases: tucker
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor(c(6,7,8))
+> tuckerD <- tucker(tnsr,ranks=c(3,3,4))
+  |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |======                                                                |   8%  |                                                                              |========                                                              |  12%  |                                                                              |===========                                                           |  16%  |                                                                              |==============                                                        |  20%  |                                                                              |======================================================================| 100%
+> tuckerD$conv
+[1] TRUE
+> tuckerD$norm_percent
+[1] 23.75281
+> plot(tuckerD$all_resids)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("unfold-methods")
+> ### * unfold-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: unfold-methods
+> ### Title: Tensor Unfolding
+> ### Aliases: unfold unfold,Tensor-method unfold-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor()
+> matT3<-unfold(tnsr,row_idx=2,col_idx=c(3,1))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("unmatvec")
+> ### * unmatvec
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: unmatvec
+> ### Title: Unmatvec Folding of Matrix
+> ### Aliases: unmatvec
+> 
+> ### ** Examples
+> 
+> tnsr <- new("Tensor",3L,c(3L,4L,5L),data=runif(60))
+> matT1<-matvec(tnsr)
+> identical(unmatvec(matT1,modes=c(3,4,5)),tnsr)
+[1] TRUE
+> 
+> 
+> 
+> cleanEx()
+> nameEx("vec-methods")
+> ### * vec-methods
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: vec-methods
+> ### Title: Tensor Vec
+> ### Aliases: vec vec,Tensor-method vec-methods
+> 
+> ### ** Examples
+> 
+> tnsr <- rand_tensor(c(4,5,6,7))
+> vec(tnsr)
+  [1] -0.626453811  0.183643324 -0.835628612  1.595280802  0.329507772
+  [6] -0.820468384  0.487429052  0.738324705  0.575781352 -0.305388387
+ [11]  1.511781168  0.389843236 -0.621240581 -2.214699887  1.124930918
+ [16] -0.044933609 -0.016190263  0.943836211  0.821221195  0.593901321
+ [21]  0.918977372  0.782136301  0.074564983 -1.989351696  0.619825748
+ [26] -0.056128740 -0.155795507 -1.470752384 -0.478150055  0.417941560
+ [31]  1.358679552 -0.102787727  0.387671612 -0.053805041 -1.377059557
+ [36] -0.414994563 -0.394289954 -0.059313397  1.100025372  0.763175748
+ [41] -0.164523596 -0.253361680  0.696963375  0.556663199 -0.688755695
+ [46] -0.707495157  0.364581962  0.768532925 -0.112346212  0.881107726
+ [51]  0.398105880 -0.612026393  0.341119691 -1.129363096  1.433023702
+ [56]  1.980399899 -0.367221476 -1.044134626  0.569719627 -0.135054604
+ [61]  2.401617761 -0.039240003  0.689739362  0.028002159 -0.743273209
+ [66]  0.188792300 -1.804958629  1.465554862  0.153253338  2.172611670
+ [71]  0.475509529 -0.709946431  0.610726353 -0.934097632 -1.253633400
+ [76]  0.291446236 -0.443291873  0.001105352  0.074341324 -0.589520946
+ [81] -0.568668733 -0.135178615  1.178086997 -1.523566800  0.593946188
+ [86]  0.332950371  1.063099837 -0.304183924  0.370018810  0.267098791
+ [91] -0.542520031  1.207867806  1.160402616  0.700213650  1.586833455
+ [96]  0.558486426 -1.276592208 -0.573265414 -1.224612615 -0.473400636
+[101] -0.620366677  0.042115873 -0.910921649  0.158028772 -0.654584644
+[106]  1.767287269  0.716707476  0.910174229  0.384185358  1.682176081
+[111] -0.635736454 -0.461644730  1.432282239 -0.650696353 -0.207380744
+[116] -0.392807929 -0.319992869 -0.279113303  0.494188331 -0.177330482
+[121] -0.505957462  1.343038825 -0.214579409 -0.179556530 -0.100190741
+[126]  0.712666307 -0.073564404 -0.037634171 -0.681660479 -0.324270272
+[131]  0.060160440 -0.588894486  0.531496193 -1.518394082  0.306557861
+[136] -1.536449824 -0.300976127 -0.528279904 -0.652094781 -0.056896778
+[141] -1.914359426  1.176583312 -1.664972436 -0.463530401 -1.115920105
+[146] -0.750819001  2.087166546  0.017395620 -1.286300530 -1.640605534
+[151]  0.450187101 -0.018559833 -0.318068375 -0.929362147 -1.487460310
+[156] -1.075192297  1.000028804 -0.621266695 -1.384426847  1.869290622
+[161]  0.425100377 -0.238647101  1.058483049  0.886422651 -0.619243048
+[166]  2.206102465 -0.255027030 -1.424494650 -0.144399602  0.207538339
+[171]  2.307978399  0.105802368  0.456998805 -0.077152935 -0.334000842
+[176] -0.034726028  0.787639606  2.075245009  1.027392439  1.207908398
+[181] -1.231323422  0.983895570  0.219924804 -1.467250029  0.521022743
+[186] -0.158754605  1.464587312 -0.766082000 -0.430211754 -0.926109497
+[191] -0.177103961  0.402011779 -0.731748173  0.830373168 -1.208082786
+[196] -1.047984413  1.441157707 -1.015847465  0.411974712 -0.381076051
+[201]  0.409401840  1.688873286  1.586588433 -0.330907801 -2.285235535
+[206]  2.497661590  0.667066167  0.541327336 -0.013399523  0.510108423
+[211] -0.164375832  0.420694643 -0.400246744 -1.370207878  0.987838267
+[216]  1.519745025 -0.308740569 -1.253289756  0.642241306 -0.044709137
+[221] -1.733218407  0.002131860 -0.630300334 -0.340968580 -1.156572363
+[226]  1.803141908 -0.331132036 -1.605513412  0.197193439  0.263175646
+[231] -0.985826700 -2.888920672 -0.640481703  0.570507636 -0.059723276
+[236] -0.098178744  0.560820729 -1.186458639  1.096777044 -0.005344028
+[241]  0.707310667  1.034107735  0.223480415 -0.878707613  1.162964556
+[246] -2.000164945 -0.544790740 -0.255670709 -0.166121037  1.020463909
+[251]  0.136221893  0.407167603 -0.069654813 -0.247664342  0.695550807
+[256]  1.146228357 -2.403096215  0.572739555  0.374724407 -0.425267722
+[261]  0.951012808 -0.389237182 -0.284330662  0.857409778  1.719627299
+[266]  0.270054901 -0.422184010 -1.189113295 -0.331032979 -0.939829327
+[271] -0.258932583  0.394379168 -0.851857092  2.649166881  0.156011676
+[276]  1.130207267 -2.289123980  0.741001157 -1.316245160  0.919803678
+[281]  0.398130155 -0.407528579  1.324258630 -0.701231669 -0.580614304
+[286] -1.001072181 -0.668178607  0.945184953  0.433702150  1.005159218
+[291] -0.390118664  0.376370292  0.244164924 -1.426257342  1.778429287
+[296]  0.134447661  0.765598999  0.955136677 -0.050565701 -0.305815420
+[301]  0.893673702 -1.047298149  1.971337386 -0.383632106  1.654145302
+[306]  1.512212694  0.082965734  0.567220915 -1.024548480  0.323006503
+[311]  1.043612458  0.099078487 -0.454136909 -0.655781852 -0.035922423
+[316]  1.069161461 -0.483974930 -0.121010111 -1.294140004  0.494312836
+[321]  1.307901520  1.497041009  0.814702731 -1.869788790  0.482029504
+[326]  0.456135603 -0.353400286  0.170489471 -0.864035954  0.679230774
+[331] -0.327101015 -1.569082185 -0.367450756  1.364434929 -0.334281365
+[336]  0.732750042  0.946585640  0.004398704 -0.352322306 -0.529695509
+[341]  0.739589226 -1.063457415  0.246210844 -0.289499367 -2.264889356
+[346] -1.408850456  0.916019329 -0.191278951  0.803283216  1.887474463
+[351]  1.473881181  0.677268492  0.379962687 -0.192798426  1.577891795
+[356]  0.596234109 -1.173576941 -0.155642535 -1.918909820 -0.195258846
+[361] -2.592327670  1.314002167 -0.635543001 -0.429978839 -0.169318332
+[366]  0.612218174  0.678340177  0.567951972 -0.572542604 -1.363291256
+[371] -0.388722244  0.277914132 -0.823081122 -0.068840934 -1.167662326
+[376] -0.008309014  0.128855402 -0.145875628 -0.163910957  1.763552003
+[381]  0.762586512  1.111431081 -0.923206953  0.164341838  1.154825187
+[386] -0.056521425 -2.129360648  0.344845762 -1.904955446 -0.811170153
+[391]  1.324004321  0.615636849  1.091668956  0.306604862 -0.110158762
+[396] -0.924312773  1.592913754  0.045010598 -0.715128401  0.865223100
+[401]  1.074440958  1.895654774 -0.602997304 -0.390867821 -0.416222032
+[406] -0.375657423 -0.366630946 -0.295677453  1.441820410 -0.697538292
+[411] -0.388167506  0.652536452  1.124772447 -0.772110803 -0.508086216
+[416]  0.523620590  1.017754227 -0.251164588 -1.429993447  1.709121032
+[421]  1.435069572 -0.710371146 -0.065067574 -1.759468735  0.569722972
+[426]  1.612346798 -1.637280647 -0.779568513 -0.641176934 -0.681131394
+[431] -2.033285596  0.500963559 -1.531798140 -0.024997639  0.592984721
+[436] -0.198195421  0.892008392 -0.025715071 -0.647660451  0.646359415
+[441] -0.433832740  1.772611185 -0.018259711  0.852814994  0.205162903
+[446] -3.008048599 -1.366111931 -0.424102260  0.236803664 -2.342723120
+[451]  0.961696633 -0.604425734 -0.752877279 -1.555611593 -1.453893738
+[456]  0.056331836  0.509369407 -2.097882960 -1.004361979  0.535771722
+[461] -0.453037085  2.165368502  1.245746673  0.595498034  0.004884450
+[466]  0.279360782 -0.705906125  0.628017153  1.480213960  1.083429910
+[471] -0.813244257 -1.618876849 -0.109655699  0.440889371  1.350993980
+[476] -1.318609485  0.364384593  0.233499835  1.193955261 -0.027909972
+[481] -0.357298855 -1.146814136 -0.517420484 -0.362123773  2.350554326
+[486]  2.446531376 -0.166703279 -1.043667439 -1.972934934  0.514671633
+[491] -1.090573584  2.284659326 -0.885617573  0.111106430  3.810276681
+[496] -1.108909998  0.307566624 -1.106894472  0.347653649 -0.873264535
+[501]  0.077303123 -0.296868642 -1.183242240  0.011292688  0.991601036
+[506]  1.593967454 -1.372711271 -0.249610933  1.159424527 -1.114222348
+[511] -2.528500689 -0.935902559 -0.967239458  0.047488592 -0.403736793
+[516]  0.231496128 -0.422372408  0.374118395 -0.366005775  1.190101447
+[521] -0.737327525  0.290666645 -0.884849568  0.208006479 -0.047730172
+[526] -1.684520646 -0.144226557  1.180213666  0.681399923  0.143247631
+[531] -1.192316444  1.169228653  0.079201709 -0.451773753  1.642028213
+[536] -0.769592322  0.303360961  1.281737421  0.602222795 -0.307022265
+[541] -0.418418103  0.355135530  0.513481115  0.018607400  1.318448972
+[546] -0.065832000 -0.700296078  0.537326132 -2.201782322  0.391973744
+[551]  0.496960952 -0.224874715 -1.117143165 -0.394994603  1.549830342
+[556] -0.743514480 -2.331712118  0.812245442 -0.501310657 -0.510886566
+[561] -1.215364041 -0.022558628  0.701239300 -0.587482026 -0.606727941
+[566]  1.096640215 -0.247509677 -0.159901713 -0.625778251  0.900434636
+[571] -0.994193629  0.849250386  0.805702289 -0.467600936  0.848420314
+[576]  0.986769864  0.575620289  2.024842045 -1.962353191 -1.164920931
+[581] -1.376519214  0.167679934  1.584629079  1.677888953  0.488296698
+[586]  0.878673263 -0.144874874  0.468971760  0.376235477 -0.761040275
+[591] -0.293294934 -0.134841264  1.393845816 -1.036988690 -2.114335148
+[596]  0.768278218 -0.816160621 -0.436106923  0.904705031 -0.763086265
+[601] -0.341066980  1.502424534  0.528307712  0.542191355 -0.136673356
+[606] -1.136733853 -1.496627154 -0.223385644  2.001719228  0.221703816
+[611]  0.164372909  0.332623609 -0.385207999 -1.398754027  2.675740796
+[616] -0.423686089 -0.298601512 -1.792341727 -0.248008225 -0.247303918
+[621] -0.255510379 -1.786938100  1.784662816  1.763586348  0.689600222
+[626] -1.100740644  0.714509357 -0.246470317 -0.319786166  1.362644293
+[631] -1.227882590 -0.511219233 -0.731194999  0.019752007 -1.572863915
+[636] -0.703333270  0.715932089  0.465214906 -0.973902306  0.559217730
+[641] -2.432639745 -0.340484927  0.713033195 -0.659037386 -0.036402623
+[646] -1.593286302  0.847792797 -1.850388849 -0.323650632 -0.255248113
+[651]  0.060921227 -0.823491629  1.829730485 -1.429916216  0.254137143
+[656] -2.939773695  0.002415809  0.509665571 -1.084720001  0.704832977
+[661]  0.330976350  0.976327473 -0.843339880 -0.970579905 -1.771531349
+[666] -0.322470342 -1.338800742  0.688156028  0.071280652  2.189752359
+[671] -1.157707599  1.181688064 -0.527368362 -1.456628011  0.572967370
+[676] -1.433377705 -1.055185019 -0.733111877  0.210907264 -0.998920727
+[681]  1.077850323 -1.198974383  0.216637035  0.143087030 -1.065750091
+[686] -0.428623411 -0.656179477  0.959394327  1.556052636 -1.040796434
+[691]  0.930572409 -0.075445931 -1.967195349 -0.755903643  0.461149161
+[696]  0.145106631 -2.442311321  0.580318685  0.655051998 -0.304508837
+[701] -0.707568233  1.971572014 -0.089998681 -0.014017252 -1.123456937
+[706] -1.344130123 -1.523155771 -0.421968210  1.360924464  1.753794845
+[711]  1.568364734  1.296755570 -0.237596251 -1.224150136 -0.327812680
+[716] -2.412450276 -0.313792873  1.659878705  0.130953101  1.095888683
+[721]  0.489340957 -0.778910295  1.743559353 -0.078387285 -0.975553793
+[726]  0.070659825 -1.518599529  0.863779033  0.501568385 -0.354781330
+[731] -0.488428888  0.936293947 -1.062408386 -0.983820872  0.424247877
+[736] -0.451313481  0.925084797 -0.198620810  1.194851017  0.495544705
+[741] -2.245152574 -1.335371360  1.282775206  0.690795904 -0.967062668
+[746] -1.345793685  1.033665389 -0.811776460  1.801725479  1.771541960
+[751] -1.454691370 -0.845654313 -1.250479659  0.667288068 -1.290769688
+[756] -2.035003538  2.021346994  1.005973488  0.817123601 -0.663988284
+[761] -0.011281231  0.619677256 -1.281238742 -0.124261326  0.175741655
+[766]  1.692773794  0.642132717  1.282233032  0.140546974 -1.112502683
+[771] -0.339676972 -1.664764639  0.928851762  1.416826835 -0.062720778
+[776] -0.980902336  1.087150251  0.139327027 -0.386272098  1.123585423
+[781] -0.759845657  1.148959103 -0.842476259  0.391413340  0.891377242
+[786] -1.335258713  0.398123478 -0.111586803  0.675743917 -0.788597935
+[791] -0.086986334  1.382284008  0.168490164  0.823190948 -0.220894598
+[796] -1.029391655 -0.010925691 -1.224991155 -2.596111388  1.169122592
+[801] -1.086908817 -1.826083013  0.995281807 -0.011861781 -0.599628395
+[806] -0.177947987 -0.425981342  0.996658776  0.727660709 -1.726630596
+[811]  0.353398496  0.726813666  0.668260976 -2.424317309 -0.235357425
+[816]  1.979633321  0.796794539 -1.709276181 -1.663668712  0.491109552
+[821] -0.174055486  0.961290564  0.293826662  0.080999364  0.183661843
+[826]  0.166255035 -1.269599066  2.349493321 -1.412005407 -0.016961493
+[831] -0.544319353  1.800112333  1.011440176 -0.563716556  0.205420795
+[836]  1.165461950  2.236322840  0.302265076 -1.042506602 -0.983542313
+> 
+> 
+> 
+> ### * <FOOTER>
+> ###
+> options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  0.874 0.022 0.897 0 0 
+> grDevices::dev.off()
+null device 
+          1 
+> ###
+> ### Local variables: ***
+> ### mode: outline-minor ***
+> ### outline-regexp: "\\(> \\)?### [*]+" ***
+> ### End: ***
+> quit('no')

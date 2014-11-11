@@ -1,0 +1,43 @@
+Ops-methods             Conformable elementwise operators for Tensor
+Tensor-class            S4 Class for a Tensor
+[-methods               Extract or Replace Subtensors
+as.tensor               Tensor Conversion
+cp                      Canonical Polyadic Decomposition
+cs_fold                 Column Space Folding of Matrix
+cs_unfold-methods       Tensor Column Space Unfolding
+dim-methods             Mode Getter for Tensor
+fnorm-methods           Tensor Frobenius Norm
+fold                    General Folding of Matrix
+hamadard_list           List Hamadard Product
+head-methods            Head for Tensor
+hosvd                   (Truncated-)Higher-order SVD
+initialize-methods      Initializes a Tensor instance
+innerProd-methods       Tensors Inner Product
+k_fold                  k-mode Folding of Matrix
+k_unfold-methods        Tensor k-mode Unfolding
+khatri_rao              Khatri-Rao Product
+khatri_rao_list         List Khatri-Rao Product
+kronecker_list          List Kronecker Product
+matvec-methods          Tensor Matvec Unfolding
+modeMean-methods        Tensor Mean Across Single Mode
+modeSum-methods         Tensor Sum Across Single Mode
+mpca                    Multilinear Principal Components Analysis
+print-methods           Print for Tensor
+pvd                     Population Value Decomposition
+rTensor-package         Tools for tensor analysis and decomposition
+rand_tensor             Tensor with Random Entries
+rs_fold                 Row Space Folding of Matrix
+rs_unfold-methods       Tensor Row Space Unfolding
+show-methods            Show for Tensor
+t-methods               Tensor Transpose
+t_mult                  Tensor Multiplication (T-MULT)
+t_svd                   Tensor Singular Value Decomposition
+t_svd_reconstruct       Reconstruct Tensor From TSVD
+tail-methods            Tail for Tensor
+tperm-methods           Mode Permutation for Tensor
+ttl                     Tensor Times List
+ttm                     Tensor Times Matrix (m-Mode Product)
+tucker                  Tucker Decomposition
+unfold-methods          Tensor Unfolding
+unmatvec                Unmatvec Folding of Matrix
+vec-methods             Tensor Vec

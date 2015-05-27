@@ -516,3 +516,209 @@ t_svd_reconstruct <- function(L){
 	resid <- fnorm(tnsr - est)
 	invisible(list(core = as.tensor(core), est=est, fnorm_resid = resid, norm_percent = (1-resid/fnorm(tnsr))*100))
 }
+
+#' nonnegative Tucker decomposition
+#'
+#' Decomposes nonnegative tensor \code{tnsr} into core nonnegative tensor \code{Z} and nonnegative factor matrices \code{U[n]}.
+#'@export
+#'@param tnsr nonnegative tensor with \code{K} modes
+#'@param ranks an integer vector of length \code{K} specifying the modes sizes for the output core tensor \code{Z}
+#'@param tol relative Frobenius norm error tolerance
+#'@param max_iter maximum number of iterations if error stays above \code{tol} 
+#'@param max_time max running time
+#'@param rw controls the extrapolation weight
+#'@param U0 initial factor matrices, defaults to nonnegative Gaussian random matrices
+#'@param Z0 initial core tensor \code{Z}, defaults to nonnegative Gaussian random tensor
+#'@param verbose more output algorithm progress
+#'@return a list:\describe{
+#'\item{\code{U}}{nonnegative factor matrices}
+#'\item{\code{Z}}{nonnegative core tensor}
+#'\item{\code{est}}{estimate \eqn{Z \times_1 U_1 \ldots \times_K U_K}}
+#'\item{\code{conv}}{method convergence indicator}
+#'\item{\code{fnorm_resid}}{the Frobenius norm of the error \code{fnorm(est-tnsr)} - if there was no truncation, then this is O(mach_eps) }
+#'\item{\code{n_iter}}{number of iterations}
+#'\item{\code{diag}}{convergence info for each iteration\describe{
+#'\item{\code{all_resids}}{residues}
+#'\item{\code{all_rel_resid_deltas}}{residue delta relative to the current residue}
+#'\item{\code{all_rel_resids}}{residue relative to the \code{sqrt(||tnsr||)}}
+#'}}}
+#'
+#'@details The algorithm uses the block-coordinate update procedure to solve the following optimization problem:
+#' \deqn{\min 0.5 \|tnsr - Z \times_1 U_1 \ldots \times_K U_K \|_{F^2}, \;\text{where}\; Z \geq 0, \, U_i \geq 0.}
+#' It stops if either the relative improvement of the error is below the tolerance \code{tol} for 3 consequitive iterations or
+#' both the relative error improvement and relative error (wrt the \code{tnsr} norm) are below the tolerance.
+#' Otherwise it stops if the maximal number of iterations or the time limit were reached.
+#'
+#'@note The implementation is based on ntd() MATLAB code by Yangyang Xu and Wotao Yin.
+#'@references Y. Xu and W. Yin, "A Block Coordinate Descent Method for Multi-Convex Optimization with Applications to Nonnegative Tensor Factorization and Completion". SIAM Journal on Imaging Sciences, 6(3), 1758-1789, 2013.
+#'@seealso \code{\link{tucker}}
+#'@seealso \url{http://www.math.ucla.edu/~wotaoyin/papers/bcu/ntd/ntd.html}
+#'@seealso \url{http://www.math.ucla.edu/~wotaoyin/papers/bcu/index.html}
+tucker.nonneg <- function( tnsr, ranks,
+                           tol=1e-4,
+                           max_iter = 500, max_time=0, rw=1,
+                           U0=NULL, Z0=NULL, verbose=FALSE )
+{
+  make_nonneg.tnsr <- function( tnsr )
+  {
+    tnsr@data[ tnsr@data < 0 ] <- 0
+    return ( tnsr )
+  }
+  make_nonneg.mtx <- function( mtx )
+  {
+    mtx[ mtx < 0 ] <- 0
+    return ( mtx )
+  }
+  Kway <- dim(tnsr) # dimension of tnsr
+  K <- length(Kway) # tnsr is an K-way tensor
+
+  if ( is.null(U0) ) {
+    if ( verbose ) message( 'Generating random initial factor matrices estimates...' )
+    U0 <- lapply( seq_len(K), function(n) make_nonneg.mtx( matrix( rnorm( Kway[[n]]*ranks[[n]] ), ncol = ranks[[n]] ) ) )
+  }
+  if ( is.null(Z0) ) {
+    if ( verbose ) message( 'Generating random initial core tensor estimate...' )
+    Z0 <- make_nonneg.tnsr( rand_tensor( modes = ranks, drop = FALSE) )
+  }
+
+  Tnrm <- fnorm(tnsr)
+  fnorm_resid0 <- 0.5*Tnrm^2
+
+  U0 <- lapply( U0, function(U0i) U0i/norm(U0i,"F")*Tnrm^(1/(K+1)) )
+  Usq <- lapply( U0, crossprod )
+  Z0 <- Z0/fnorm(Z0)*Tnrm^(1/(K+1))
+
+  U <- U0
+  Um <- U0
+  Z <- Z0
+  Zm <- Z0
+
+  n_stall <- 0
+  w <- 0
+  t0 <- 1
+  t <- t0
+  wU <- rep.int( 1, K+1 )
+  L0 <- wU
+  L <- L0
+
+  # Precompute matrix unfoldings of input tensor to save computing time if it is not too large
+  if (K*prod(Kway)<4000^2) {
+    if ( verbose ) message( 'Precomputing input tensor unfoldings...' )
+    Tmtx <- lapply( seq_len(K), function(n) unfold( tnsr, row_idx = n, col_idx = seq_len(K)[-n] )@data )
+  } else {
+    if ( verbose ) message( 'Input tensor too big, no unfoldings precomputation...' )
+    Tmtx <- NULL
+  }
+
+  # Iterations of block-coordinate update
+  # iteratively updated variables:
+  # GradU: gradients with respect to each component matrix of U
+  # GradZ: gradient with respect to Z
+  # U,Z: new updates
+  # U0,Z0: old updates
+  # Um,Zm: extrapolations of U
+  # L, L0: current and previous Lipschitz bounds
+  # resid, resid0: current and previous residual error
+  start_time <- proc.time()
+  #progress bar
+  pb <- txtProgressBar(min=0,max=max_iter,style=3)
+  all_resids <- numeric(0)
+  all_rel_resid_deltas <- numeric(0)
+  all_rel_resids <- numeric(0)
+
+  conv <- FALSE
+  for (n_iter in seq_len(max_iter)) {
+    setTxtProgressBar(pb, n_iter)
+
+    # -- update the core tensor Z --
+    L0[[K+1]] <- L[[K+1]]
+    L[[K+1]] <- prod( sapply( Usq, norm, type = 'F' ) )
+
+    # compute the gradient
+    GradZ <- ttl(Zm, Usq, seq_len(K)) - ttl(tnsr, U, seq_len(K), transpose=TRUE )
+    # update core tensor
+    Z <- make_nonneg.tnsr( Zm-GradZ/L[[K+1]] )
+
+    # -- update factor matrices U --
+    for (n in seq_len(K)) {
+      if (!is.null(Tmtx)) {
+        B <- unfold( ttl( Z, U[-n], seq_len(K)[-n] ), n, seq_len(K)[-n] )
+        Bsq <- tcrossprod(B@data, B@data)
+        MB <- tcrossprod(Tmtx[[n]], B@data)
+      } else {
+        Z.mtx <- unfold( Z, n, seq_len(K)[-n])
+        Bsq <- unfold( ttl( Z, Usq[-n], seq_len(K)[-n] ), n, seq_len(K)[-n] )
+        Bsq <- tcrossprod( Bsq@data, Z.mtx@data )
+
+        MB <-  unfold( ttl( tnsr, U[-n], seq_len(K)[-n], transpose=TRUE ), n, seq_len(K)[-n] )
+        MB <- tcrossprod( MB@data, Z.mtx@data )
+      }
+      #compute the gradient
+      GradU <- Um[[n]] %*% Bsq - MB
+      L0[[n]] <- L[[n]]
+      L[[n]] <- norm(Bsq, 'F')
+      U[[n]] <- make_nonneg.mtx( Um[[n]]-GradU/L[[n]] )
+      Usq[[n]] <- crossprod( U[[n]], U[[n]] )
+    }
+
+    # --- diagnostics, reporting, stopping checks ---
+    fnorm_resid <- max( 0, 0.5*(sum(Usq[[K]]*Bsq)-2*sum(U[[K]]*MB)+Tnrm^2) )
+    rel_resid_delta <- abs(fnorm_resid-fnorm_resid0)/(fnorm_resid0+1)
+    rel_resid <- sqrt(2*fnorm_resid)/Tnrm
+
+    # reporting
+    all_resids <- append( all_resids, fnorm_resid )
+    all_rel_resid_deltas <- append( all_rel_resid_deltas, rel_resid_delta )
+    all_rel_resids <- append( all_rel_resids, rel_resid )
+
+    # check stopping criterion
+    crit <- rel_resid_delta < tol
+    n_stall <- ifelse( crit, n_stall+1, 0 )
+    if ( n_stall >= 3 || rel_resid < tol ) {
+      if ( verbose ) {
+        if ( rel_resid == 0 ) message( 'Residue is zero. Exact decomposition was found' )
+        if ( n_stall >= 3 ) message( 'Residue relative delta below ', tol, ' ', n_stall, ' times in a row' )
+        if ( rel_resid < tol ) message( 'Residue is ', rel_resid, ' times below input tensor norm' )
+        message( 'tucker.nonneg() converged in ', n_iter, ' iteration(s), ', n_redo, ' redo steps' )
+      }
+      conv = TRUE
+      break
+    }
+    if ( max_time > 0 && ( proc.time() - start_time )[[3]] > max_time ) {
+      warning( "Maximal time exceeded, might be not an optimal solution")
+      break
+    }
+
+    # --- correction and extrapolation ---
+    t <- (1+sqrt(1+4*t0^2))/2
+    if (fnorm_resid>=fnorm_resid0) {
+      # restore U, Z to make the objective nonincreasing
+      Um <- U0
+      Zm <- Z0
+    } else {
+      #get new extrapolated points
+      w <- (t0-1)/t # extrapolation weight
+      # choose smaller weight for convergence
+      wU <- pmin( w, rw*sqrt(L0/L) )
+      Um <- lapply( seq_len(K), function(n) U[[n]] + wU[[n]]*(U[[n]]-U0[[n]]) )
+      Zm <- Z + wU[K+1]*(Z-Z0)
+      U0 <- U
+      Z0 <- Z
+      t0 <- t
+      fnorm_resid0 <- fnorm_resid
+    }
+  }
+  setTxtProgressBar(pb,max_iter)
+  close(pb)
+  if ( !conv && n_iter == max_iter ) {
+    warning( "Maximal number of iterations reached, might be not an optimal solution")
+  }
+
+  return ( invisible( list(U=U, Z=Z, est=ttl(Z,U,seq_len(K)),
+                           n_iter = n_iter,
+                           conv = conv,
+                           fnorm_resid = fnorm_resid,
+                           diag = list( all_resids = all_resids,
+                                        all_rel_resid_deltas = all_rel_resid_deltas,
+                                        all_rel_resids = all_rel_resids ) ) ) )
+}

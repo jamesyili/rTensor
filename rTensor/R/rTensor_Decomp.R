@@ -517,12 +517,13 @@ t_svd_reconstruct <- function(L){
 	invisible(list(core = as.tensor(core), est=est, fnorm_resid = resid, norm_percent = (1-resid/fnorm(tnsr))*100))
 }
 
-#' sparse nonnegative Tucker decomposition
+#' sparse (semi-)nonnegative Tucker decomposition
 #'
-#' Decomposes nonnegative tensor \code{tnsr} into core nonnegative tensor \code{Z} and sparse nonnegative factor matrices \code{U[n]}.
+#' Decomposes nonnegative tensor \code{tnsr} into core optionally nonnegative tensor \code{Z} and sparse nonnegative factor matrices \code{U[n]}.
 #'@export
 #'@param tnsr nonnegative tensor with \code{K} modes
 #'@param ranks an integer vector of length \code{K} specifying the modes sizes for the output core tensor \code{Z}
+#'@param core_nonneg constrain core tensor \code{Z} to be nonnegative
 #'@param tol relative Frobenius norm error tolerance
 #'@param max_iter maximum number of iterations if error stays above \code{tol} 
 #'@param max_time max running time
@@ -551,6 +552,8 @@ t_svd_reconstruct <- function(L){
 #'@details The function uses the alternating proximal gradient method to solve the following optimization problem:
 #' \deqn{\min 0.5 \|tnsr - Z \times_1 U_1 \ldots \times_K U_K \|_{F^2} + 
 #' \sum_{n=1}^{K} \lambda_n \|U_n\|_1 + \lambda_{K+1} \|Z\|_1, \;\text{where}\; Z \geq 0, \, U_i \geq 0.}
+#' If \code{core_nonneg} is \code{FALSE}, core tensor \code{Z} is allowed to have negative
+#' elements and \eqn{z_{i,j}=max(0,z_{i,j}-\lambda_{K+1}/L_{K+1})} rule is replaced by \eqn{z_{i,j}=sign(z_{i,j})max(0,|z_{i,j}|-\lambda_{K+1}/L_{K+1})}.
 #' The method stops if either the relative improvement of the error is below the tolerance \code{tol} for 3 consequitive iterations or
 #' both the relative error improvement and relative error (wrt the \code{tnsr} norm) are below the tolerance.
 #' Otherwise it stops if the maximal number of iterations or the time limit were reached.
@@ -559,7 +562,7 @@ t_svd_reconstruct <- function(L){
 #'@references Y. Xu, "Alternating proximal gradient method for sparse nonnegative Tucker decomposition", Math. Prog. Comp., 7, 39-70, 2013.
 #'@seealso \code{\link{tucker}}
 #'@seealso \url{http://www.caam.rice.edu/~optimization/bcu/}
-tucker.nonneg <- function( tnsr, ranks,
+tucker.nonneg <- function( tnsr, ranks, core_nonneg=TRUE,
                            tol=1e-4, hosvd=FALSE,
                            max_iter = 500, max_time=0,
                            lambda = rep.int( 0, length(ranks)+1 ), L_min = 1, rw=0.9999,
@@ -589,9 +592,13 @@ tucker.nonneg <- function( tnsr, ranks,
     # update core vector
     Z <<- curZ - gradZ/L[[K+1]]
     if ( lambda[[K+1]] > 0 ) {
-      Z <<- Z - lambda[[K+1]]/L[[K+1]]
+      if ( core_nonneg ) {
+        Z <<- Z - lambda[[K+1]]/L[[K+1]]
+      } else {
+        Z@data <<- sign(Z@data) * pmax( 0, abs(Z@data) - lambda[[K+1]]/L[[K+1]] )
+      }
     }
-    Z <<- make_nonneg.tnsr( Z )
+    if ( core_nonneg ) Z <<- make_nonneg.tnsr( Z )
     # do projection
     if ( doproj[[K+1]] ) {
       mask <- abs(Z@data) > bound
@@ -647,8 +654,9 @@ tucker.nonneg <- function( tnsr, ranks,
   }
   if ( is.null(Z0) ) {
     if ( verbose ) message( 'Generating random initial core tensor estimate...' )
-    Z0 <- make_nonneg.tnsr( rand_tensor( modes = ranks, drop = FALSE) )
+    Z0 <- rand_tensor( modes = ranks, drop = FALSE)
   }
+  if ( core_nonneg ) Z0 <- make_nonneg.tnsr(Z0)
 
   # pre-process the starting point
   if (hosvd) {

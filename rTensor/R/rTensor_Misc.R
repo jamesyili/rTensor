@@ -116,6 +116,7 @@ khatri_rao_list <- function(L,reverse=FALSE){
 #'@param tnsr Tensor object with K modes
 #'@param mat input matrix with same number columns as the \code{m}th mode of \code{tnsr}
 #'@param m the mode to contract on
+#'@param transpose if mat should be transposed before multiplication
 #'@return a Tensor object with K modes
 #'@seealso \code{\link{ttl}}, \code{\link{rs_unfold-methods}}
 #'@note The \code{m}th mode of \code{tnsr} must match the number of columns in \code{mat}. By default, the returned Tensor does not drop any modes equal to 1.
@@ -124,16 +125,17 @@ khatri_rao_list <- function(L,reverse=FALSE){
 #'tnsr <- new("Tensor",3L,c(3L,4L,5L),data=runif(60))
 #'mat <- matrix(runif(50),ncol=5)
 #'ttm(tnsr,mat,m=3)
-ttm<-function(tnsr,mat,m=NULL){
+ttm<-function(tnsr,mat,m=NULL,transpose=FALSE){
 	stopifnot(is.matrix(mat))
 	if(is.null(m)) stop("m must be specified")
 	mat_dims <- dim(mat)
+	if ( transpose ) mat_dims <- rev(mat_dims)
 	modes_in <- tnsr@modes
 	stopifnot(modes_in[m]==mat_dims[2])
 	modes_out <- modes_in
 	modes_out[m] <- mat_dims[1]
 	tnsr_m <- rs_unfold(tnsr,m=m)@data
-	retarr_m <- mat%*%tnsr_m
+	retarr_m <- if (transpose) crossprod(mat,tnsr_m) else mat%*%tnsr_m
 	rs_fold(retarr_m,m=m,modes=modes_out)
 }
 
@@ -148,6 +150,7 @@ ttm<-function(tnsr,mat,m=NULL){
 #'@param tnsr Tensor object with K modes
 #'@param list_mat a list of matrices
 #'@param ms a vector of modes to contract on (order should match the order of \code{list_mat})
+#'@param transpose if matrices should be transposed before multiplication
 #'@return Tensor object with K modes
 #'@seealso  \code{\link{ttm}}
 #'@note The returned Tensor does not drop any modes equal to 1.
@@ -158,7 +161,7 @@ ttm<-function(tnsr,mat,m=NULL){
 #' 'mat2' = matrix(runif(40),ncol=4),
 #' 'mat3' = matrix(runif(50),ncol=5))
 #'ttl(tnsr,lizt,ms=c(1,2,3))
-ttl<-function(tnsr,list_mat,ms=NULL){
+ttl<-function(tnsr,list_mat,ms=NULL,transpose=FALSE){
 	if(is.null(ms)||!is.vector(ms)) stop ("m modes must be specified as a vector")
 	if(length(ms)!=length(list_mat)) stop("m modes length does not match list_mat length")
 	num_mats <- length(list_mat)
@@ -166,18 +169,19 @@ ttl<-function(tnsr,list_mat,ms=NULL){
 	mat_nrows <- vector("list", num_mats)
 	mat_ncols <- vector("list", num_mats)
 	for(i in 1:num_mats){
-	mat <- list_mat[[i]]
-	m <- ms[i]
-	mat_dims <- dim(mat)
-	modes_in <- tnsr@modes
-	stopifnot(modes_in[m]==mat_dims[2])
-	modes_out <- modes_in
-	modes_out[m] <- mat_dims[1]
-	tnsr_m <- rs_unfold(tnsr,m=m)@data
-	retarr_m <- mat%*%tnsr_m
-	tnsr <- rs_fold(retarr_m,m=m,modes=modes_out)
-	}	
-	tnsr	
+	  mat <- list_mat[[i]]
+	  m <- ms[i]
+	  mat_dims <- dim(mat)
+	  if (transpose) mat_dims <- rev(mat_dims)
+	  modes_in <- tnsr@modes
+	  stopifnot(modes_in[m]==mat_dims[2])
+	  modes_out <- modes_in
+	  modes_out[m] <- mat_dims[1]
+	  tnsr_m <- rs_unfold(tnsr,m=m)@data
+	  retarr_m <- if (transpose) crossprod(mat, tnsr_m) else mat%*%tnsr_m
+	  tnsr <- rs_fold(retarr_m,m=m,modes=modes_out)
+	}
+	tnsr
 }
 
 #'Tensor Multiplication (T-MULT)

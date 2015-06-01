@@ -517,48 +517,60 @@ t_svd_reconstruct <- function(L){
 	invisible(list(core = as.tensor(core), est=est, fnorm_resid = resid, norm_percent = (1-resid/fnorm(tnsr))*100))
 }
 
-#' nonnegative Tucker decomposition
+#' sparse nonnegative Tucker decomposition
 #'
-#' Decomposes nonnegative tensor \code{tnsr} into core nonnegative tensor \code{Z} and nonnegative factor matrices \code{U[n]}.
+#' Decomposes nonnegative tensor \code{tnsr} into core nonnegative tensor \code{Z} and sparse nonnegative factor matrices \code{U[n]}.
 #'@export
 #'@param tnsr nonnegative tensor with \code{K} modes
 #'@param ranks an integer vector of length \code{K} specifying the modes sizes for the output core tensor \code{Z}
 #'@param tol relative Frobenius norm error tolerance
 #'@param max_iter maximum number of iterations if error stays above \code{tol} 
 #'@param max_time max running time
+#'@param lambda \code{K+1} vector of sparsity regularizer coefficients for the factor matrices and the core tensor
+#'@param L_min lower bound for Lipschitz constant for the gradients of residual error \eqn{l(Z,U) = fnorm(tnsr - ttl(Z, U))} by \code{Z} and each \code{U}
 #'@param rw controls the extrapolation weight
+#'@param bound upper bound for the elements of \code{Z} and \code{U[[n]]} (the ones that have zero regularization coefficient \code{lambda})
 #'@param U0 initial factor matrices, defaults to nonnegative Gaussian random matrices
 #'@param Z0 initial core tensor \code{Z}, defaults to nonnegative Gaussian random tensor
 #'@param verbose more output algorithm progress
+#'@param unfold_tnsr precalculate \code{tnsr} to matrix unfolding by every mode (speeds up calculation, but may require lots of memory)
 #'@return a list:\describe{
 #'\item{\code{U}}{nonnegative factor matrices}
 #'\item{\code{Z}}{nonnegative core tensor}
 #'\item{\code{est}}{estimate \eqn{Z \times_1 U_1 \ldots \times_K U_K}}
 #'\item{\code{conv}}{method convergence indicator}
-#'\item{\code{fnorm_resid}}{the Frobenius norm of the error \code{fnorm(est-tnsr)} - if there was no truncation, then this is O(mach_eps) }
+#'\item{\code{resid}}{the Frobenius norm of the residual error \code{l(Z,U)} plus regularization penalty (if any)}
 #'\item{\code{n_iter}}{number of iterations}
+#'\item{\code{n_redo}}{number of times Z and U were recalculated to avoid the increase in objective function}
 #'\item{\code{diag}}{convergence info for each iteration\describe{
 #'\item{\code{all_resids}}{residues}
 #'\item{\code{all_rel_resid_deltas}}{residue delta relative to the current residue}
 #'\item{\code{all_rel_resids}}{residue relative to the \code{sqrt(||tnsr||)}}
 #'}}}
 #'
-#'@details The algorithm uses the block-coordinate update procedure to solve the following optimization problem:
-#' \deqn{\min 0.5 \|tnsr - Z \times_1 U_1 \ldots \times_K U_K \|_{F^2}, \;\text{where}\; Z \geq 0, \, U_i \geq 0.}
-#' It stops if either the relative improvement of the error is below the tolerance \code{tol} for 3 consequitive iterations or
+#'@details The function uses the alternating proximal gradient method to solve the following optimization problem:
+#' \deqn{\min 0.5 \|tnsr - Z \times_1 U_1 \ldots \times_K U_K \|_{F^2} + 
+#' \sum_{n=1}^{K} \lambda_n \|U_n\|_1 + \lambda_{K+1} \|Z\|_1, \;\text{where}\; Z \geq 0, \, U_i \geq 0.}
+#' The method stops if either the relative improvement of the error is below the tolerance \code{tol} for 3 consequitive iterations or
 #' both the relative error improvement and relative error (wrt the \code{tnsr} norm) are below the tolerance.
 #' Otherwise it stops if the maximal number of iterations or the time limit were reached.
 #'
-#'@note The implementation is based on ntd() MATLAB code by Yangyang Xu and Wotao Yin.
-#'@references Y. Xu and W. Yin, "A Block Coordinate Descent Method for Multi-Convex Optimization with Applications to Nonnegative Tensor Factorization and Completion". SIAM Journal on Imaging Sciences, 6(3), 1758-1789, 2013.
+#'@note The implementation is based on ntds() MATLAB code by Yangyang Xu and Wotao Yin.
+#'@references Y. Xu, "Alternating proximal gradient method for sparse nonnegative Tucker decomposition", Math. Prog. Comp., 7, 39-70, 2013.
 #'@seealso \code{\link{tucker}}
-#'@seealso \url{http://www.math.ucla.edu/~wotaoyin/papers/bcu/ntd/ntd.html}
-#'@seealso \url{http://www.math.ucla.edu/~wotaoyin/papers/bcu/index.html}
+#'@seealso \url{http://www.caam.rice.edu/~optimization/bcu/}
 tucker.nonneg <- function( tnsr, ranks,
-                           tol=1e-4,
-                           max_iter = 500, max_time=0, rw=1,
-                           U0=NULL, Z0=NULL, verbose=FALSE )
+                           tol=1e-4, hosvd=FALSE,
+                           max_iter = 500, max_time=0,
+                           lambda = rep.int( 0, length(ranks)+1 ), L_min = 1, rw=0.9999,
+                           bound = Inf,
+                           U0=NULL, Z0=NULL, verbose=FALSE,
+                           unfold_tnsr=length(dim(tnsr))*prod(dim(tnsr)) < 4000^2 )
 {
+  #progress bar
+  start_time <- proc.time()
+  pb <- txtProgressBar(min=0,max=max_iter,style=3)
+
   make_nonneg.tnsr <- function( tnsr )
   {
     tnsr@data[ tnsr@data < 0 ] <- 0
@@ -569,6 +581,63 @@ tucker.nonneg <- function( tnsr, ranks,
     mtx[ mtx < 0 ] <- 0
     return ( mtx )
   }
+  # update core tensor
+  # return new residual error
+  makeZStep <- function( curZ )
+  {
+    gradZ <- ttl(curZ, Usq, seq_len(K)) - TtU
+    # update core vector
+    Z <<- curZ - gradZ/L[[K+1]]
+    if ( lambda[[K+1]] > 0 ) {
+      Z <<- Z - lambda[[K+1]]/L[[K+1]]
+    }
+    Z <<- make_nonneg.tnsr( Z )
+    # do projection
+    if ( doproj[[K+1]] ) {
+      mask <- abs(Z@data) > bound
+      Z@data[mask] <<- sign(Z@data[mask]) * bound
+    }
+    return ( invisible() )
+  }
+
+  # update n-th factor matrix (U[[n]])
+  # return new residual error
+  makeUnStep <- function( curU, n )
+  {
+    if ( !is.null(Tmtx) ) {
+      B <- unfold( ttl( Z, U[-n], seq_len(K)[-n] ), n, seq_len(K)[-n] )
+      Bsq <- tcrossprod(B@data)
+      TB <- tcrossprod(Tmtx[[n]], B@data)
+    } else {
+      B <- unfold( ttl( Z, Usq[-n], seq_len(K)[-n] ), n, seq_len(K)[-n] )
+      TB <- unfold( ttl( tnsr, U[-n], seq_len(K)[-n], transpose=TRUE ), n, seq_len(K)[-n] )
+      Zn <- unfold( Z, n, seq_len(K)[-n] )
+
+      Bsq <- tcrossprod( B@data, Zn@data )
+      TB <- tcrossprod( TB@data, Zn@data )
+    }
+    # compute the gradient
+    gradU <- curU %*% Bsq - TB
+    # update Lipschitz constant
+    L0[[n]] <<- L[[n]]
+    L[[n]] <<- max( L_min, norm(Bsq, '2') )
+    # update n-th factor matrix
+    newU <- make_nonneg.mtx( curU - (gradU+lambda[[n]])/L[[n]] )
+    if ( doproj[[n]] ) newU[ newU > bound ] <- bound
+
+    # update U[[n]]
+    U[[n]] <<- newU
+    Usq[[n]] <<- crossprod( U[[n]] )
+    nrmUsq[[n]] <<- norm( Usq[[n]], '2' )
+
+    # --- diagnostics, reporting, stopping checks ---
+    newResid <- 0.5*(sum(Usq[[n]]*Bsq)-2*sum(U[[n]]*TB)+Tnrm^2)
+    if (sparse.reg) {
+      newResid <- newResid + lambda %*% c( sapply( U, sum ), sum(abs(Z@data)) )
+    }
+    return ( newResid )
+  }
+
   Kway <- dim(tnsr) # dimension of tnsr
   K <- length(Kway) # tnsr is an K-way tensor
 
@@ -581,32 +650,50 @@ tucker.nonneg <- function( tnsr, ranks,
     Z0 <- make_nonneg.tnsr( rand_tensor( modes = ranks, drop = FALSE) )
   }
 
+  # pre-process the starting point
+  if (hosvd) {
+    if ( verbose ) message( 'Applying High Order SVD to improve initial U and Z...' )
+    # "solve" Z = tnsr x_1 U_1' ... x_K U_K'
+    U0 <- lapply( seq_len(K), function(n) {
+      U0n_tilde <- unfold( ttl(tnsr, U0[-n], seq_len(K)[-n], transpose=TRUE ),
+                           row_idx = n, col_idx = seq_len(K)[-n] )@data
+      U0n_vecs <- svd( U0n_tilde, nu = ranks[[n]], nv = 0 )$u
+      U0n <- matrix( unlist( lapply( U0n_vecs, function( Uvec ) {
+        # make the largest absolute element positive
+        i <- which.max( abs(Uvec) )
+        if ( Uvec[[i]] < 0 ) Uvec <- -Uvec
+        # project to > 0
+        Uvec <- pmax( .Machine$double.eps, Uvec )
+      } ) ), ncol=ranks[[n]] )
+      return ( U0n/sum(U0n) )
+    } )
+    Z0 <- ttl( tnsr, U0, seq_len(K), transpose=TRUE )
+  }
+  # check the existence of sparseness regularizer
+  sparse.reg <- any(lambda>0)
+  # add bound constraint for well-definedness
+  doproj <- lambda == 0 & is.finite(bound)
+
   Tnrm <- fnorm(tnsr)
-  fnorm_resid0 <- 0.5*Tnrm^2
 
-  U0 <- lapply( U0, function(U0i) U0i/norm(U0i,"F")*Tnrm^(1/(K+1)) )
-  Usq <- lapply( U0, crossprod )
-  Z0 <- Z0/fnorm(Z0)*Tnrm^(1/(K+1))
+  # rescale the initial point according to the number of elements
+  Knum <- Kway * ranks
+  totalNum <- prod(ranks) + sum(Knum)
+  U0 <- lapply( seq_along(U0), function(n) U0[[n]]/norm(U0[[n]],"F")*Tnrm^(Knum[[n]]/totalNum) )
+  Usq0 <- lapply( U0, crossprod )
+  nrmUsq <- sapply( Usq0, norm, '2' )
+  Z0 <- Z0/fnorm(Z0)*Tnrm^(prod(ranks)/totalNum)
 
-  U <- U0
-  Um <- U0
-  Z <- Z0
-  Zm <- Z0
-
-  n_stall <- 0
-  w <- 0
-  t0 <- 1
-  t <- t0
-  wU <- rep.int( 1, K+1 )
-  L0 <- wU
-  L <- L0
+  resid0 <- 0.5*fnorm( tnsr-ttl(Z0,U0,seq_len(K)) )^2
+  if (sparse.reg) resid0 <- resid0 + lambda %*% c( sapply( U0, sum ), sum(abs(Z0@data)) )
+  resid <- resid0
 
   # Precompute matrix unfoldings of input tensor to save computing time if it is not too large
-  if (K*prod(Kway)<4000^2) {
+  if (unfold_tnsr) {
     if ( verbose ) message( 'Precomputing input tensor unfoldings...' )
     Tmtx <- lapply( seq_len(K), function(n) unfold( tnsr, row_idx = n, col_idx = seq_len(K)[-n] )@data )
   } else {
-    if ( verbose ) message( 'Input tensor too big, no unfoldings precomputation...' )
+    if ( verbose ) message( 'No precomputing of tensor unfoldings' )
     Tmtx <- NULL
   }
 
@@ -619,55 +706,83 @@ tucker.nonneg <- function( tnsr, ranks,
   # Um,Zm: extrapolations of U
   # L, L0: current and previous Lipschitz bounds
   # resid, resid0: current and previous residual error
-  start_time <- proc.time()
-  #progress bar
-  pb <- txtProgressBar(min=0,max=max_iter,style=3)
+  U <- U0
+  Um <- U0
+  Usq <- Usq0
+  Z <- Z0
+  Zm <- Z0
+
+  t0 <- rep.int( 1, K+1 )
+  t <- t0
+  wU <- rep.int( 0, K+1 )
+  L0 <- rep.int( 1, K+1 )
+  L <- L0
+
   all_resids <- numeric(0)
   all_rel_resid_deltas <- numeric(0)
   all_rel_resids <- numeric(0)
-
+  n_stall <- 0
+  n_redo <- 0
   conv <- FALSE
+
+  # do the iterations
+  if ( verbose ) message( 'Starting iterations...' )
   for (n_iter in seq_len(max_iter)) {
     setTxtProgressBar(pb, n_iter)
 
-    # -- update the core tensor Z --
-    L0[[K+1]] <- L[[K+1]]
-    L[[K+1]] <- prod( sapply( Usq, norm, type = 'F' ) )
+    residn0 <- resid
+    TtU0 <- list( ttm( tnsr, U0[[1]], 1, transpose=TRUE ) )
+    for (n in 2:K) {
+      TtU0[[n]] <- ttm( TtU0[[n-1]], U0[[n]], n, transpose=TRUE )
+    }
 
-    # compute the gradient
-    GradZ <- ttl(Zm, Usq, seq_len(K)) - ttl(tnsr, U, seq_len(K), transpose=TRUE )
-    # update core tensor
-    Z <- make_nonneg.tnsr( Zm-GradZ/L[[K+1]] )
+    for (n in seq.int(from=K,to=1) ) {
+      # -- update the core tensor Z --
+      L0[[K+1]] <- L[[K+1]]
+      L[[K+1]] <- pmax( L_min, prod( nrmUsq ) )
 
-    # -- update factor matrices U --
-    for (n in seq_len(K)) {
-      if (!is.null(Tmtx)) {
-        B <- unfold( ttl( Z, U[-n], seq_len(K)[-n] ), n, seq_len(K)[-n] )
-        Bsq <- tcrossprod(B@data, B@data)
-        MB <- tcrossprod(Tmtx[[n]], B@data)
-      } else {
-        Z.mtx <- unfold( Z, n, seq_len(K)[-n])
-        Bsq <- unfold( ttl( Z, Usq[-n], seq_len(K)[-n] ), n, seq_len(K)[-n] )
-        Bsq <- tcrossprod( Bsq@data, Z.mtx@data )
-
-        MB <-  unfold( ttl( tnsr, U[-n], seq_len(K)[-n], transpose=TRUE ), n, seq_len(K)[-n] )
-        MB <- tcrossprod( MB@data, Z.mtx@data )
+      # try to make a step using extrapolated decompositon (Zm,Um)
+      TtU <- if ( n < K ) ttl( TtU0[[n]], U[(n+1):K], (n+1):K, transpose=TRUE ) else TtU0[[K]]
+      makeZStep( Zm )
+      residn <- makeUnStep( Um[[n]], n )
+      if ( residn>residn0 ) {
+        # extrapolated Zm,Um decomposition lead to residual norm increase,
+        # revert extrapolation and make a step using Z0,U0 to ensure
+        # objective function is decreased
+        n_redo <- n_redo + 1
+        # re-update to make objective nonincreasing
+        Usq[[n]] <- Usq0[[n]] # Z update needs it
+        makeZStep( Z0 )
+        residn <- makeUnStep( U0[[n]], n )
+        if ( residn>residn0 ) warning( n_iter, ': residue increase at redo step' )
       }
-      #compute the gradient
-      GradU <- Um[[n]] %*% Bsq - MB
-      L0[[n]] <- L[[n]]
-      L[[n]] <- norm(Bsq, 'F')
-      U[[n]] <- make_nonneg.mtx( Um[[n]]-GradU/L[[n]] )
-      Usq[[n]] <- crossprod( U[[n]], U[[n]] )
+      # --- correction and extrapolation ---
+      t[[n]] <- (1+sqrt(1+4*t0[[n]]^2))/2
+      # choose smaller weight of U[[n]] for convergence
+      wU[[n]] <- min( (t0[[n]]-1)/t[[n]], rw*sqrt(L0[[n]]/L[[n]]) )
+      Um[[n]] <- U[[n]] + wU[[n]]*( U[[n]]-U0[[n]] )
+      t[[K+1]] <- (1+sqrt(1+4*t0[[K+1]]^2))/2
+      # choose smaller weight of Z for convergence
+      wU[[K+1]] <- min( (t0[[K+1]]-1)/t[[K+1]], rw*sqrt(L0[[K+1]]/L[[K+1]]) )
+      Zm <- Z + wU[K+1]*(Z-Z0)
+
+      # store the current update
+      Z0 <- Z
+      U0[[n]] <- U[[n]]
+      Usq0[[n]] <- Usq[[n]]
+      t0[c(n,K+1)] <- t[c(n,K+1)]
+      residn0 <- residn
     }
 
     # --- diagnostics, reporting, stopping checks ---
-    fnorm_resid <- max( 0, 0.5*(sum(Usq[[K]]*Bsq)-2*sum(U[[K]]*MB)+Tnrm^2) )
-    rel_resid_delta <- abs(fnorm_resid-fnorm_resid0)/(fnorm_resid0+1)
-    rel_resid <- sqrt(2*fnorm_resid)/Tnrm
+    resid0 <- resid
+    resid <- max( 0, residn )
+
+    rel_resid_delta <- abs(resid-resid0)/(resid0+1)
+    rel_resid <- sqrt(2*resid)/Tnrm
 
     # reporting
-    all_resids <- append( all_resids, fnorm_resid )
+    all_resids <- append( all_resids, resid )
     all_rel_resid_deltas <- append( all_rel_resid_deltas, rel_resid_delta )
     all_rel_resids <- append( all_rel_resids, rel_resid )
 
@@ -688,25 +803,6 @@ tucker.nonneg <- function( tnsr, ranks,
       warning( "Maximal time exceeded, might be not an optimal solution")
       break
     }
-
-    # --- correction and extrapolation ---
-    t <- (1+sqrt(1+4*t0^2))/2
-    if (fnorm_resid>=fnorm_resid0) {
-      # restore U, Z to make the objective nonincreasing
-      Um <- U0
-      Zm <- Z0
-    } else {
-      #get new extrapolated points
-      w <- (t0-1)/t # extrapolation weight
-      # choose smaller weight for convergence
-      wU <- pmin( w, rw*sqrt(L0/L) )
-      Um <- lapply( seq_len(K), function(n) U[[n]] + wU[[n]]*(U[[n]]-U0[[n]]) )
-      Zm <- Z + wU[K+1]*(Z-Z0)
-      U0 <- U
-      Z0 <- Z
-      t0 <- t
-      fnorm_resid0 <- fnorm_resid
-    }
   }
   setTxtProgressBar(pb,max_iter)
   close(pb)
@@ -716,8 +812,9 @@ tucker.nonneg <- function( tnsr, ranks,
 
   return ( invisible( list(U=U, Z=Z, est=ttl(Z,U,seq_len(K)),
                            n_iter = n_iter,
+                           n_redo = n_redo,
                            conv = conv,
-                           fnorm_resid = fnorm_resid,
+                           resid = resid,
                            diag = list( all_resids = all_resids,
                                         all_rel_resid_deltas = all_rel_resid_deltas,
                                         all_rel_resids = all_rel_resids ) ) ) )

@@ -707,6 +707,7 @@ new("Tensor",num_modes,modes,data=array(x,dim=modes))
 setGeneric(name="tperm",
 def=function(tnsr,perm,...){standardGeneric("tperm")})
 
+#'@seealso \code{\link{aperm}}
 #'@rdname tperm-methods
 #'@aliases tperm-methods tperm,Tensor-method
 setMethod("tperm",signature="Tensor",

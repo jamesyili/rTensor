@@ -19,6 +19,8 @@ Description: rTensor is a set of tools for creation, manipulation, and modeling
     the Hamadard product for a list of matrices. Development of rTensor has
     been generously supported by Cornell's Department of Statistical Science.
 License: GPL (>= 2)
-Depends: methods
+Depends:
+    methods
 Date: 2014-11-05
 URL: http://jamesyili.github.io/rTensor
+RoxygenNote: 5.0.1

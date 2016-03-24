@@ -525,7 +525,7 @@ t_svd_reconstruct <- function(L){
 #'@param ranks an integer vector of length \code{K} specifying the modes sizes for the output core tensor \code{Z}
 #'@param core_nonneg constrain core tensor \code{Z} to be nonnegative
 #'@param tol relative Frobenius norm error tolerance
-#'@param hosvd If TRUE, apply High Order SVD to improve initial U and Z.
+#'@param hosvd If TRUE, apply High Order SVD to improve initial U and Z
 #'@param max_iter maximum number of iterations if error stays above \code{tol}
 #'@param max_time max running time
 #'@param lambda \code{K+1} vector of sparsity regularizer coefficients for the factor matrices and the core tensor
@@ -552,7 +552,7 @@ t_svd_reconstruct <- function(L){
 #'
 #'@details The function uses the alternating proximal gradient method to solve the following optimization problem:
 #' \deqn{\min 0.5 \|tnsr - Z \times_1 U_1 \ldots \times_K U_K \|_{F^2} +
-#' \sum_{n=1}^{K} \lambda_n \|U_n\|_1 + \lambda_{K+1} \|Z\|_1, \;\text{where}\; Z \geq 0, \, U_i \geq 0.}
+#' \sum_{n=1}^{K} \lambda_n \|U_n\|_1 + \lambda_{K+1} \|Z\|_1, \;\textit{where}\; Z \geq 0, \, U_i \geq 0.}
 #' If \code{core_nonneg} is \code{FALSE}, core tensor \code{Z} is allowed to have negative
 #' elements and \eqn{z_{i,j}=max(0,z_{i,j}-\lambda_{K+1}/L_{K+1})} rule is replaced by \eqn{z_{i,j}=sign(z_{i,j})max(0,|z_{i,j}|-\lambda_{K+1}/L_{K+1})}.
 #' The method stops if either the relative improvement of the error is below the tolerance \code{tol} for 3 consequitive iterations or

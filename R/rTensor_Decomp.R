@@ -47,7 +47,7 @@ hosvd <- function(tnsr,ranks=NULL){
 	est <- ttl(Z,U_list,ms=1:num_modes)
 	resid <- fnorm(est-tnsr)
 	#put together the return list, and returns
-	list(Z=Z,U=U_list,est=est,fnorm_resid=resid)	
+	list(Z=Z,U=U_list,est=est,fnorm_resid=resid)
 }
 
 #'Canonical Polyadic Decomposition
@@ -60,7 +60,7 @@ hosvd <- function(tnsr,ranks=NULL){
 #'@aliases cp
 #'@param tnsr Tensor with K modes
 #'@param num_components the number of rank-1 K-Tensors to use in approximation
-#'@param max_iter maximum number of iterations if error stays above \code{tol} 
+#'@param max_iter maximum number of iterations if error stays above \code{tol}
 #'@param tol relative Frobenius norm error tolerance
 #'@return a list containing the following \describe{
 #'\item{\code{lambdas}}{a vector of normalizing constants, one for each component}
@@ -75,10 +75,10 @@ hosvd <- function(tnsr,ranks=NULL){
 #'@references T. Kolda, B. Bader, "Tensor decomposition and applications". SIAM Applied Mathematics and Applications 2009.
 #'@examples
 #'tnsr <- rand_tensor(c(6,7,8))
-#'cpD <- cp(tnsr,num_components=5) 
-#'cpD$conv 
-#'cpD$norm_percent 
-#'plot(cpD$all_resids) 
+#'cpD <- cp(tnsr,num_components=5)
+#'cpD$conv
+#'cpD$norm_percent
+#'plot(cpD$all_resids)
 cp <- function(tnsr, num_components=NULL,max_iter=25, tol=1e-5){
 	if(is.null(num_components)) stop("num_components must be specified")
 	stopifnot(is(tnsr,"Tensor"))
@@ -103,7 +103,7 @@ cp <- function(tnsr, num_components=NULL,max_iter=25, tol=1e-5){
 		if (curr_iter==1) return(FALSE)
 		if (abs(curr_resid-fnorm_resid[curr_iter-1])/tnsr_norm < tol) return(TRUE)
 		else{ return(FALSE)}
-	}	
+	}
 	#progress bar
 	pb <- txtProgressBar(min=0,max=max_iter,style=3)
 	#main loop (until convergence or max_iter)
@@ -114,10 +114,10 @@ cp <- function(tnsr, num_components=NULL,max_iter=25, tol=1e-5){
 	setTxtProgressBar(pb,curr_iter)
 		for(m in 1:num_modes){
 			V <- hamadard_list(lapply(U_list[-m],function(x) {t(x)%*%x}))
-			V_inv <- solve(V)			
+			V_inv <- solve(V)
 			tmp <- unfolded_mat[[m]]%*%khatri_rao_list(U_list[-m],reverse=TRUE)%*%V_inv
 			lambdas <- apply(tmp,2,norm_vec)
-			U_list[[m]] <- sweep(tmp,2,lambdas,"/")	
+			U_list[[m]] <- sweep(tmp,2,lambdas,"/")
 			Z <- .superdiagonal_tensor(num_modes=num_modes,len=num_components,elements=lambdas)
 			est <- ttl(Z,U_list,ms=1:num_modes)
 		}
@@ -148,7 +148,7 @@ cp <- function(tnsr, num_components=NULL,max_iter=25, tol=1e-5){
 #'@aliases tucker
 #'@param tnsr Tensor with K modes
 #'@param ranks a vector of the modes of the output core Tensor
-#'@param max_iter maximum number of iterations if error stays above \code{tol} 
+#'@param max_iter maximum number of iterations if error stays above \code{tol}
 #'@param tol relative Frobenius norm error tolerance
 #'@return a list containing the following:\describe{
 #'\item{\code{Z}}{the core tensor, with modes specified by \code{ranks}}
@@ -165,7 +165,7 @@ cp <- function(tnsr, num_components=NULL,max_iter=25, tol=1e-5){
 #'@examples
 #'tnsr <- rand_tensor(c(6,7,8))
 #'tuckerD <- tucker(tnsr,ranks=c(3,3,4))
-#'tuckerD$conv 
+#'tuckerD$conv
 #'tuckerD$norm_percent
 #'plot(tuckerD$all_resids)
 tucker <- function(tnsr,ranks=NULL,max_iter=25,tol=1e-5){
@@ -195,7 +195,7 @@ tucker <- function(tnsr,ranks=NULL,max_iter=25,tol=1e-5){
 	pb <- txtProgressBar(min=0,max=max_iter,style=3)
 	#main loop (until convergence or max_iter)
 	while((curr_iter < max_iter) && (!converged)){
-	setTxtProgressBar(pb,curr_iter)	
+	setTxtProgressBar(pb,curr_iter)
 	modes <- tnsr@modes
 	modes_seq <- 1:num_modes
 		for(m in modes_seq){
@@ -211,7 +211,7 @@ tucker <- function(tnsr,ranks=NULL,max_iter=25,tol=1e-5){
 		#checks convergence
 		if(CHECK_CONV(Z, U_list)){
 			converged <- TRUE
-			setTxtProgressBar(pb,max_iter)	
+			setTxtProgressBar(pb,max_iter)
 		}else{
 			curr_iter <- curr_iter + 1
 			}
@@ -235,7 +235,7 @@ tucker <- function(tnsr,ranks=NULL,max_iter=25,tol=1e-5){
 #'@aliases mpca
 #'@param tnsr Tensor with K modes
 #'@param ranks a vector of the compressed modes of the output core Tensor, this has length K-1
-#'@param max_iter maximum number of iterations if error stays above \code{tol} 
+#'@param max_iter maximum number of iterations if error stays above \code{tol}
 #'@param tol relative Frobenius norm error tolerance
 #'@return a list containing the following:\describe{
 #'\item{\code{Z_ext}}{the extended core tensor, with the first K-1 modes given by \code{ranks}}
@@ -376,7 +376,7 @@ pvd <- function(tnsr,uranks=NULL,wranks=NULL,a=NULL,b=NULL){
 		est[,,i] <- P%*%V2[[i]]%*%D
 	}
 	est <- as.tensor(est)
-	fnorm_resid <- fnorm(est-tnsr)	
+	fnorm_resid <- fnorm(est-tnsr)
 	setTxtProgressBar(pb,n+3)
 	norm_percent<-(1-(fnorm_resid/fnorm(tnsr)))*100
 	invisible(list(P=P,D=D,V=V2,est=est,norm_percent=norm_percent,fnorm_resid=fnorm_resid))
@@ -416,7 +416,7 @@ t_svd<-function(tnsr){
 	#svd for each face (svdz is a list of the results)
 	U_arr <- array(0,dim=c(n1,n1,n3))
 	V_arr <- array(0,dim=c(n2,n2,n3))
-	m <- min(n1,n2)		
+	m <- min(n1,n2)
 	S_arr <- array(0,dim=c(n1,n2,n3))
 	#Think of a way to avoid a loop in the beginning
 	#Problem is that svd returns a list but ideally we want 3 arrays
@@ -427,7 +427,7 @@ t_svd<-function(tnsr){
 		U_arr[,,j] <- decomp$u
 		V_arr[,,j] <- decomp$v
 		S_arr[,,j] <- diag(decomp$d,nrow=n1,ncol=n2) #length is min(n1,n2)
-	}	
+	}
 	close(pb)
 	#for each svd result, we want to apply ifft
 	U <- as.tensor(aperm(apply(U_arr,MARGIN=1:2,ifft),c(2,3,1)))
@@ -444,7 +444,7 @@ t_svd<-function(tnsr){
 #'@rdname t_svd_reconstruct
 #'@aliases t_svd_reconstruct
 #'@param L list that is an output from \code{\link{t_svd}}
-#'@return a 3-Tensor 
+#'@return a 3-Tensor
 #'@seealso \code{\link{t_svd}}
 #'@examples
 #'tnsr <- rand_tensor(c(10,10,10))
@@ -469,7 +469,7 @@ t_svd_reconstruct <- function(L){
 	#svd for each face (svdz is a list of the results)
 	U_arr <- array(0,dim=c(n1,n1,n3))
 	V_arr <- array(0,dim=c(n2,n2,n3))
-	m <- min(n1,n2)		
+	m <- min(n1,n2)
 	S_arr <- array(0,dim=c(n1,n2,n3))
 	#Think of a way to avoid a loop in the beginning
 	#Problem is that svd returns a list but ideally we want 3 arrays
@@ -480,13 +480,13 @@ t_svd_reconstruct <- function(L){
 		U_arr[,,j] <- decomp$u
 		V_arr[,,j] <- decomp$v
 		S_arr[,,j] <- diag(decomp$d,nrow=n1,ncol=n2) #length is min(n1,n2)
-	}	
+	}
 	close(pb)
 	#for each svd result, we want to apply ifft
 	U <- as.tensor(aperm(apply(U_arr,MARGIN=1:2,ifft),c(2,3,1)))
 	V <- as.tensor(aperm(apply(V_arr,MARGIN=1:2,ifft),c(2,3,1)))
 	S <- as.tensor(aperm(apply(S_arr,MARGIN=1:2,ifft),c(2,3,1)))
-	
+
 	est <- as.tensor(array(0,dim=modes))
 	for (i in 1:k){
 		est <- est + t_mult(t_mult(U[,i,,drop=FALSE],S[i,i,,drop=FALSE]),t(V[,i,,drop=FALSE]))
@@ -511,7 +511,7 @@ t_svd_reconstruct <- function(L){
 	for(i in 1:k1){
 		for (j in 1:k2){
 			est = est + Util[,i] %o% Vtil[,j] %o% core[i,j,]
-		}	
+		}
 	}
 	resid <- fnorm(tnsr - est)
 	invisible(list(core = as.tensor(core), est=est, fnorm_resid = resid, norm_percent = (1-resid/fnorm(tnsr))*100))
@@ -525,7 +525,8 @@ t_svd_reconstruct <- function(L){
 #'@param ranks an integer vector of length \code{K} specifying the modes sizes for the output core tensor \code{Z}
 #'@param core_nonneg constrain core tensor \code{Z} to be nonnegative
 #'@param tol relative Frobenius norm error tolerance
-#'@param max_iter maximum number of iterations if error stays above \code{tol} 
+#'@param hosvd If TRUE, apply High Order SVD to improve initial U and Z.
+#'@param max_iter maximum number of iterations if error stays above \code{tol}
 #'@param max_time max running time
 #'@param lambda \code{K+1} vector of sparsity regularizer coefficients for the factor matrices and the core tensor
 #'@param L_min lower bound for Lipschitz constant for the gradients of residual error \eqn{l(Z,U) = fnorm(tnsr - ttl(Z, U))} by \code{Z} and each \code{U}
@@ -550,7 +551,7 @@ t_svd_reconstruct <- function(L){
 #'}}}
 #'
 #'@details The function uses the alternating proximal gradient method to solve the following optimization problem:
-#' \deqn{\min 0.5 \|tnsr - Z \times_1 U_1 \ldots \times_K U_K \|_{F^2} + 
+#' \deqn{\min 0.5 \|tnsr - Z \times_1 U_1 \ldots \times_K U_K \|_{F^2} +
 #' \sum_{n=1}^{K} \lambda_n \|U_n\|_1 + \lambda_{K+1} \|Z\|_1, \;\text{where}\; Z \geq 0, \, U_i \geq 0.}
 #' If \code{core_nonneg} is \code{FALSE}, core tensor \code{Z} is allowed to have negative
 #' elements and \eqn{z_{i,j}=max(0,z_{i,j}-\lambda_{K+1}/L_{K+1})} rule is replaced by \eqn{z_{i,j}=sign(z_{i,j})max(0,|z_{i,j}|-\lambda_{K+1}/L_{K+1})}.

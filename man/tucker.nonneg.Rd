@@ -19,6 +19,8 @@ tucker.nonneg(tnsr, ranks, core_nonneg = TRUE, tol = 1e-04, hosvd = FALSE,
 
 \item{tol}{relative Frobenius norm error tolerance}
 
+\item{hosvd}{If TRUE, apply High Order SVD to improve initial U and Z.}
+
 \item{max_iter}{maximum number of iterations if error stays above \code{tol}}
 
 \item{max_time}{max running time}
@@ -59,7 +61,7 @@ Decomposes nonnegative tensor \code{tnsr} into core optionally nonnegative tenso
 }
 \details{
 The function uses the alternating proximal gradient method to solve the following optimization problem:
-\deqn{\min 0.5 \|tnsr - Z \times_1 U_1 \ldots \times_K U_K \|_{F^2} + 
+\deqn{\min 0.5 \|tnsr - Z \times_1 U_1 \ldots \times_K U_K \|_{F^2} +
 \sum_{n=1}^{K} \lambda_n \|U_n\|_1 + \lambda_{K+1} \|Z\|_1, \;\text{where}\; Z \geq 0, \, U_i \geq 0.}
 If \code{core_nonneg} is \code{FALSE}, core tensor \code{Z} is allowed to have negative
 elements and \eqn{z_{i,j}=max(0,z_{i,j}-\lambda_{K+1}/L_{K+1})} rule is replaced by \eqn{z_{i,j}=sign(z_{i,j})max(0,|z_{i,j}|-\lambda_{K+1}/L_{K+1})}.

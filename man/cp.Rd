@@ -34,10 +34,10 @@ Uses the Alternating Least Squares (ALS) estimation procedure. A progress bar is
 }
 \examples{
 tnsr <- rand_tensor(c(6,7,8))
-cpD <- cp(tnsr,num_components=5) 
-cpD$conv 
-cpD$norm_percent 
-plot(cpD$all_resids) 
+cpD <- cp(tnsr,num_components=5)
+cpD$conv
+cpD$norm_percent
+plot(cpD$all_resids)
 }
 \references{
 T. Kolda, B. Bader, "Tensor decomposition and applications". SIAM Applied Mathematics and Applications 2009.

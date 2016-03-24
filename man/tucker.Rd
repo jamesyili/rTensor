@@ -38,7 +38,7 @@ The length of \code{ranks} must match \code{tnsr@num_modes}.
 \examples{
 tnsr <- rand_tensor(c(6,7,8))
 tuckerD <- tucker(tnsr,ranks=c(3,3,4))
-tuckerD$conv 
+tuckerD$conv
 tuckerD$norm_percent
 plot(tuckerD$all_resids)
 }

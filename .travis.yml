@@ -1,0 +1,19 @@
+language: r
+# see also https://docs.travis-ci.com/user/languages/r
+
+# Using the package cache to store R package dependencies can significantly
+# speed up build times and is recommended for most builds.
+cache:
+  - apt
+  - packages
+
+# You will need to set sudo: false in order to use the container based builds
+# and package caching.
+sudo: false
+
+warnings_are_errors: true
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change

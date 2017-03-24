@@ -25,6 +25,7 @@
 #'    \item{head}{\code{signature(tnsr = "Tensor")}: ... }
 #'    \item{initialize}{\code{signature(.Object = "Tensor")}: ... }
 #'    \item{innerProd}{\code{signature(tnsr1 = "Tensor", tnsr2 = "Tensor")}: ... }
+#'    \item{outerProd}{\code{signature(tnsr1 = "Tensor", tnsr2 = "Tensor")}: ... }
 #'    \item{modeMean}{\code{signature(tnsr = "Tensor")}: ... }
 #'    \item{modeSum}{\code{signature(tnsr = "Tensor")}: ... }
 #'    \item{Ops}{\code{signature(e1 = "array", e2 = "Tensor")}: ... }
@@ -263,6 +264,26 @@ def=function(tnsr){standardGeneric("fnorm")})
 #'innerProd(tnsr1,tnsr2)
 setGeneric(name="innerProd",
 def=function(tnsr1,tnsr2){standardGeneric("innerProd")})
+
+#'Tensors Outer Product
+#'
+#'Returns the outer product between two Tensors
+#'
+#'@docType methods
+#'@name outerProd-methods
+#'@details \code{outerProd(tnsr1,tnsr2)}
+#'@export
+#'@rdname outerProd-methods
+#'@aliases outerProd outerProd,Tensor,Tensor-method
+#'@param tnsr1 first Tensor instance
+#'@param tnsr2 second Tensor instance
+#'@return outer product between \code{tnsr1} and \code{tnsr2}
+#'@examples
+#'tnsr1 <- rand_tensor()
+#'tnsr2 <- rand_tensor()
+#'outerProd(tnsr1,tnsr2)
+setGeneric(name="outerProd",
+def=function(tnsr1,tnsr2){standardGeneric("outerProd")})
 
 #'Initializes a Tensor instance
 #'
@@ -577,6 +598,15 @@ definition=function(tnsr1,tnsr2){
 	arr1 <- tnsr1@data
 	arr2 <- tnsr2@data
 	sum(as.numeric(arr1*arr2))
+})
+
+#'@rdname outerProd-methods
+#'@aliases outerProd,Tensor,Tensor-method
+setMethod("outerProd",signature=c(tnsr1="Tensor", tnsr2="Tensor"),
+definition=function(tnsr1,tnsr2){
+	arr1 <- tnsr1@data
+	arr2 <- tnsr2@data
+	as.tensor(arr1 %o% arr2)
 })
 
 ###Tensor Unfoldings

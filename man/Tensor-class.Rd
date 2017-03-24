@@ -51,6 +51,7 @@ All of the decompositions and regression models in this package require a Tensor
    \item{head}{\code{signature(tnsr = "Tensor")}: ... }
    \item{initialize}{\code{signature(.Object = "Tensor")}: ... }
    \item{innerProd}{\code{signature(tnsr1 = "Tensor", tnsr2 = "Tensor")}: ... }
+   \item{outerProd}{\code{signature(tnsr1 = "Tensor", tnsr2 = "Tensor")}: ... }
    \item{modeMean}{\code{signature(tnsr = "Tensor")}: ... }
    \item{modeSum}{\code{signature(tnsr = "Tensor")}: ... }
    \item{Ops}{\code{signature(e1 = "array", e2 = "Tensor")}: ... }
